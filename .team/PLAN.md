@@ -6,7 +6,8 @@ Deliver a sandbox-verified Lister-Bridge v2 with fail-closed review, reconciliat
 
 ## Assumptions
 
-- The authoritative repository is `C:\\Claude\\Lister-Bridge` on `main`.
+- The authoritative repository is `C:\\Claude\\Lister-Bridge`.
+- Execute this roadmap on `tier3-v2-roadmap`; keep `main` as the protected legacy baseline until the user explicitly authorizes integration.
 - Python 3.12 is the supported verification and packaging target.
 - Google Drive remains the only ingestion route; direct upload is excluded.
 - Existing `.env` files remain compatible, but production credentials and publishing remain disabled.

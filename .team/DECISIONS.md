@@ -19,3 +19,7 @@ T-001 is the bootstrap exception because it created the binding mechanism. T-002
 ## D-TEAM-005 — OAuth Token Separation
 
 Seller authorization uses base, Inventory, Account read-only, Media, and Fulfillment scopes. Browse and Taxonomy use a separate client-credentials application token. The nonsecret eBay user ID scopes publication and outcome identity.
+
+## D-TEAM-006 — Isolate the Roadmap from Legacy Main
+
+Execute Tier-3 and v2 roadmap work on `tier3-v2-roadmap`, based on legacy commit `678ff26`. Keep `main` unchanged as the protected legacy baseline. Integration into `main` requires explicit user authorization after evidence-gated review; ordinary task completion does not imply merge or publication authority.

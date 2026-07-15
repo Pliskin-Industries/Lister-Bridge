@@ -6,7 +6,8 @@
 - Escalated task: T-002 — Establish governance precedence and issue binding.
 - Active issue: https://github.com/GhengisPliskin/Lister-Bridge/issues/7.
 - Next task issue: https://github.com/GhengisPliskin/Lister-Bridge/issues/8 (T-003).
-- Repository: `C:\\Claude\\Lister-Bridge`, branch `main`.
+- Repository: `C:\\Claude\\Lister-Bridge`, working branch `tier3-v2-roadmap`.
+- Protected legacy baseline: `main` at `678ff26`; no roadmap commits belong on `main` without explicit user authorization.
 - Baseline: clean at start; 166 tests previously passed in a disposable environment; PyInstaller spec built an unsigned executable.
 - Production publishing: disabled and out of scope.
 

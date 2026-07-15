@@ -7,9 +7,10 @@ The contract for an explicitly authorized Codex agent team. The primary agent en
 ```text
 VERIFY: powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1
 NO-TOUCH: .env; local credential files; user data under %APPDATA%/ListerBridge
-INTEGRATION_BRANCH: main
+BASE_BRANCH: main
+INTEGRATION_BRANCH: tier3-v2-roadmap
 PORTS: none
-NOTES: Authoritative repo is C:\\Claude\\Lister-Bridge. Sandbox is the default eBay environment. Production publishing remains disabled and out of scope. Existing governance documents remain requirements records; .team/PLAN.md owns executable task status.
+NOTES: Authoritative repo is C:\\Claude\\Lister-Bridge. Keep main as the protected legacy baseline; execute this roadmap only on tier3-v2-roadmap unless the user explicitly authorizes a merge. Sandbox is the default eBay environment. Production publishing remains disabled and out of scope. Existing governance documents remain requirements records; .team/PLAN.md owns executable task status.
 ```
 
 ## Roles
