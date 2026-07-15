@@ -66,7 +66,7 @@ Acceptance criteria:
 
 Notes: Approved roadmap T-002; PDR D-10 conflict and stale issue audit.
 
-#### T-003 — Establish reproducible Windows verification [TODO]
+#### T-003 — Establish reproducible Windows verification [DONE]
 
 Depends: T-002
 Issue: [#8](https://github.com/GhengisPliskin/Lister-Bridge/issues/8)
@@ -75,12 +75,12 @@ Files: `constraints-py312.txt`, `scripts/verify.ps1`, `.github/workflows/windows
 
 Acceptance criteria:
 
-- [ ] AC1: Python 3.12 installs both requirement sets under the constraint file and `pip check` exits 0. Verify: CI transcript.
-- [ ] AC2: `scripts/verify.ps1` exits 0 and the suite contains at least 166 collected tests. Verify: saved console output.
-- [ ] AC3: The Windows workflow runs verification, builds `dist/lister-bridge.exe`, rejects a zero-byte artifact, writes SHA-256, and uploads the executable. Verify: workflow YAML review and local execution of the same commands; the remote run is gated by T-013.
-- [ ] AC4: `.pytest_cache` and supported build caches remain untracked. Verify: run VERIFY, then `git status --short` contains none of those paths.
+- [x] AC1: Python 3.12 installs both requirement sets under the constraint file and `pip check` exits 0. Verify: saved Python 3.12 transcript in QA evidence; the hosted transcript remains gated by T-013.
+- [x] AC2: `scripts/verify.ps1` exits 0 and the suite contains at least 166 collected tests. Verify: saved console output.
+- [x] AC3: The Windows workflow runs verification, builds `dist/lister-bridge.exe`, rejects a zero-byte artifact, writes SHA-256, and uploads the executable. Verify: workflow YAML review and local execution of the same commands; the remote run is gated by T-013.
+- [x] AC4: `.pytest_cache` and supported build caches remain untracked. Verify: run VERIFY, then `git status --short` contains none of those paths.
 
-Notes: Approved roadmap T-003; baseline audit recorded 166 PASS and one deprecation warning.
+Notes: QA PASS and critic CLEAR in `.team/evidence/T-003/qa.md`; hosted execution remains assigned to T-013.
 
 ### Phase 1 — Safety kernel
 

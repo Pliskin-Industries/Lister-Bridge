@@ -8,7 +8,20 @@ data/
 __pycache__/
 *.py[cod]
 *.pyo
+.pytest_cache/
+.test-tmp/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.eggs/
+*.egg-info/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
 .venv/
+.venv-*/
 venv/
 env/
 
