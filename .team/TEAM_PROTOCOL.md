@@ -2,7 +2,7 @@
 
 The contract for an explicitly authorized Codex agent team. The primary agent enforces it; delegated agents read only the sections and task artifacts needed for their role.
 
-## Project Config — fill before execution
+## Project Config
 
 ```text
 VERIFY: powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1
@@ -15,6 +15,8 @@ NOTES: Authoritative repo is C:\\Claude\\Lister-Bridge. Keep main as the protect
 
 ## Roles
 
+### Execution Roles
+
 | Role | Tier | May write | Verdict authority |
 | --- | --- | --- | --- |
 | primary agent | all | coordination files | PLAN status and DONE |
@@ -23,6 +25,11 @@ NOTES: Authoritative repo is C:\\Claude\\Lister-Bridge. Keep main as the protect
 | adversarial-critic | 2+ | no | CLEAR, CONCERNS, or BLOCK |
 | research-scout | 2+ | no | findings only |
 | system-fixer | 2+ | environment/tooling only | none |
+
+### Continuity Roles
+
+| Role | Tier | May write | Verdict authority |
+| --- | --- | --- | --- |
 | context-librarian | 3 | `.team` housekeeping only | none |
 | eval-designer | 3 | `.team/evals` only | none |
 | improvement-analyst | 3 | proposed diffs only | none |

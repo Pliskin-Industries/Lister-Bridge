@@ -20,11 +20,16 @@ Execute these named modes only when the user types the keyword:
 
 ## Repository Governance
 
+### Execution Boundary
+
 - Read `CLAUDE.md`, `.team/TEAM_PROTOCOL.md`, `.team/OPERATOR.md`, `.team/PLAN.md`, and `.team/STATE.md` before implementation.
 - Execute roadmap work only on `tier3-v2-roadmap`. Treat `main` as the protected legacy baseline; do not merge, rebase, or commit roadmap work onto `main` without explicit user authorization.
 - The legacy master plan, FMEA, and decision logs remain requirements records. When an old task or prompt conflicts with `.team/PLAN.md`, the current PLAN task and recorded team decision control execution.
 - Multi-agent delegation is authorized only for bounded `.team/PLAN.md` tasks. The primary agent alone changes task status and performs final synthesis.
 - Before a task moves from `TODO` to `IN-FLIGHT`, record its assigned GitHub issue URL in both `.team/PLAN.md` and `.team/STATE.md`. An issue cannot expand PLAN scope.
+
+### Safety and Evidence
+
 - Issues #2–#6 are historical evidence. The CLI task in #5 and GraphQL task in #6 are superseded and must not execute unless a future approved PLAN explicitly restores them.
 - `docs/FMEA.md` and its human amendment gate remain binding. An unresolved conflict requires `ESCALATE`; the team overlay cannot waive it.
 - Builders stop at `READY-FOR-QA`. Reproducible evidence under `.team/evidence/T-xxx/` is required for `DONE`.
