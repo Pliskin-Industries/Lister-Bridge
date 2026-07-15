@@ -49,20 +49,20 @@ Acceptance criteria:
 
 Notes: Approved roadmap, Execution Model. The generated deployment scaffold is the protocol's sole atomic-bootstrap exception to the five-file builder limit.
 
-#### T-002 — Establish governance precedence and issue binding [ESCALATE]
+#### T-002 — Establish governance precedence and issue binding [DONE]
 
 Depends: T-001
 Issue: [#7](https://github.com/GhengisPliskin/Lister-Bridge/issues/7)
 Parallel-group: A
 Files: `AGENTS.md`, `CLAUDE.md`, `KEY_DECISION_LOG.md`, `docs/FMEA.md`, `.team/DECISIONS.md`
-⚠ ESCALATE: governance and FMEA amendment; the user approved this task in the implementation request.
+Human gate cleared July 14, 2026: the user authorized execution after the exact Amendment 5 values were presented.
 
 Acceptance criteria:
 
-- [ ] AC1: A decision entry states that legacy records remain active while `.team/PLAN.md` controls current execution when task instructions conflict. Verify: `Select-String KEY_DECISION_LOG.md,.team/DECISIONS.md -Pattern 'execution overlay','controls current execution'` returns matches.
-- [ ] AC2: `CLAUDE.md` and `AGENTS.md` retain issue binding, FMEA amendment gates, QA evidence, and human escalation while rejecting stale CLI/GraphQL tasks not present in PLAN. Verify: direct rule matrix in `.team/evidence/T-002/qa.md` records PASS.
-- [ ] AC3: A GitHub roadmap epic exists, and every task must gain a linked issue before `IN-FLIGHT`. Verify: epic URL and T-003 issue URL are recorded in `.team/STATE.md`.
-- [ ] AC4: The FMEA contains approved rows for duplicate publication, feedback pricing, polling limits, and cross-account/SKU misattribution. Verify: named FMEA rows are cited in `.team/evidence/T-002/qa.md`.
+- [x] AC1: A decision entry states that legacy records remain active while `.team/PLAN.md` controls current execution when task instructions conflict. Verify: `Select-String KEY_DECISION_LOG.md,.team/DECISIONS.md -Pattern 'execution overlay','controls current execution'` returns matches.
+- [x] AC2: `CLAUDE.md` and `AGENTS.md` retain issue binding, FMEA amendment gates, QA evidence, and human escalation while rejecting stale CLI/GraphQL tasks not present in PLAN. Verify: direct rule matrix in `.team/evidence/T-002/qa.md` records PASS.
+- [x] AC3: A GitHub roadmap epic exists, and every task must gain a linked, assigned issue before `IN-FLIGHT`. Verify: epic URL, T-003 issue URL, and assignee are recorded in `.team/STATE.md`.
+- [x] AC4: The FMEA contains approved rows for duplicate publication, feedback pricing, polling limits, and cross-account/SKU misattribution. Verify: named FMEA rows are cited in `.team/evidence/T-002/qa.md`.
 
 Notes: Approved roadmap T-002; PDR D-10 conflict and stale issue audit.
 

@@ -162,7 +162,7 @@ FMEA amendments, human approval gates, issue binding, Kanban traceability, and a
 
 **Rationale:** The repository contains a working Streamlit and REST implementation while legacy CLI and GraphQL tasks remain open. Explicit precedence prevents obsolete instructions from directing new implementation without discarding their historical decision and risk context.
 
-**FMEA Impact:** Amendment Proposal 5 adds publication and outcome-feedback risks after the owner approves its exact scores and controls.
+**FMEA Impact:** Amendment 5 was approved and activated on July 14, 2026, with PI-010 at 9/4/8, PI-011 at 7/5/6, PI-012 at 7/5/5, and PI-013 at 9/3/8. Its controls are binding for dependent roadmap tasks.
 
 **Downstream impact:**
 
