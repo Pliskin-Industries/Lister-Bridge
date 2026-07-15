@@ -149,3 +149,24 @@ numbering reduces cognitive load when cross-referencing.
 **Downstream impact:**
 - All prompt headers reference C-004–C-007 (not C-019–C-022).
 - Ground Rule 11 references C-004–C-007.
+
+---
+
+## DECISION 7 — Preserve Legacy Gates Under a Tier-3 Execution Overlay
+
+**Status:** RESOLVED — approved by the human owner on July 14, 2026.
+
+**Resolution:** The master plan, FMEA, and decision logs remain requirements records. The Tier-3 `.team` workspace is an execution overlay: `.team/PLAN.md` controls current execution when a legacy task, prompt, or issue conflicts; `.team/STATE.md` records resumability and active issue binding; GitHub roadmap epic #7 provides external traceability.
+
+FMEA amendments, human approval gates, issue binding, Kanban traceability, and applicable two-phase approval remain active. Builders stop at `READY-FOR-QA`; independent evidence is required before the primary agent marks `DONE`.
+
+**Rationale:** The repository contains a working Streamlit and REST implementation while legacy CLI and GraphQL tasks remain open. Explicit precedence prevents obsolete instructions from directing new implementation without discarding their historical decision and risk context.
+
+**FMEA Impact:** Amendment Proposal 5 adds publication and outcome-feedback risks after the owner approves its exact scores and controls.
+
+**Downstream impact:**
+
+- Every T-xxx task receives a linked GitHub issue before `IN-FLIGHT`.
+- Issues #2–#6 are historical unless a current PLAN task maps to them.
+- The CLI instructions in #5 and GraphQL instructions in #6 are superseded.
+- Production publishing remains outside the v2 roadmap.
