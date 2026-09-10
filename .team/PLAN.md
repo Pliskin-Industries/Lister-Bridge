@@ -13,6 +13,8 @@ Deliver a sandbox-verified Lister-Bridge v2 with fail-closed review, reconciliat
 - Existing `.env` files remain compatible, but production credentials and publishing remain disabled.
 - Windows Task Scheduler is the headless scheduling mechanism.
 - Live sandbox tasks remain `BLOCKED` until the operator supplies credentials and performs required buyer/seller actions.
+- Gemini remains the default AI route; the manual paste provider (T-026, T-027) is an optional subscription-chat route that reuses the same extraction prompt and parser.
+- Operator testing is deferred until a working UI exists (owner decision 2026-09-10); T-027 is the first operator test point.
 
 ## Delivery Sequence
 
@@ -84,21 +86,22 @@ Notes: QA PASS and critic CLEAR in `.team/evidence/T-003/qa.md`; hosted executio
 
 ### Phase 1 — Safety kernel
 
-#### T-004 — Add thread-safe state migrations [TODO]
+#### T-004 — Add thread-safe state migrations [DONE]
 
 Depends: T-002, T-003
+Issue: [#9](https://github.com/GhengisPliskin/Lister-Bridge/issues/9)
 Parallel-group: serial
 Files: `src/core/state_store.py`, `tests/test_state_store.py`, `tests/test_state_store_concurrency.py`
-⚠ ESCALATE: persistent-state migration; implementation must preserve existing rows.
+⚠ ESCALATE: persistent-state migration; implementation must preserve existing rows. Human gate cleared 2026-09-10: the owner authorized cycle 4 and the commit of its result; no real database is migrated by this task.
 
 Acceptance criteria:
 
-- [ ] AC1: Each StateStore operation uses a connection owned by the calling operation; WAL, foreign keys, and a 5000 ms busy timeout are active. Verify: named pragma test passes.
-- [ ] AC2: A version table applies forward-only migrations inside transactions. Verify: migration tests from an unversioned fixture and the latest fixture pass.
-- [ ] AC3: A timestamped SQLite backup exists before the first migration of an existing database. Verify: backup test compares pre-migration row counts.
-- [ ] AC4: Concurrent read/write and duplicate-claim tests complete without thread-affinity or locked-database errors. Verify: `pytest tests/test_state_store_concurrency.py` exits 0.
+- [x] AC1: Each StateStore operation uses a connection owned by the calling operation; WAL, foreign keys, and a 5000 ms busy timeout are active. Verify: named pragma test passes.
+- [x] AC2: A version table applies forward-only migrations inside transactions. Verify: migration tests from an unversioned fixture and the latest fixture pass.
+- [x] AC3: A timestamped SQLite backup exists before the first migration of an existing database. Verify: backup test compares pre-migration row counts.
+- [x] AC4: Concurrent readers and writers complete without thread-affinity or locked-database errors, and an injected migration failure rolls back the live schema while preserving the copied backup. Verify: named concurrency and rollback tests pass; T-005 retains publication-claim ownership.
 
-Notes: Approved roadmap T-004.
+Notes: The user explicitly authorized remediation cycle 3 on 2026-07-15 after the second QA failure. Cycle 3 closed the v1 comment/string constraint bypass but independent QA rejected AC3 and AC4: backup eligibility is sampled before cross-process serialization, and concurrent constructors can fail while activating WAL before `BEGIN IMMEDIATE`. QA also records a critic finding that future migrations can stamp preexisting malformed objects because validation remains hard-coded to v1. Evidence: `.team/evidence/T-004/qa.md` and `.team/evidence/T-004/qa-cycle-3.md`. The owner authorized remediation cycle 4 on 2026-09-10 (recorded on issue #9). Cycle 4 delivered lock-held backup eligibility, retry-safe WAL activation, and a version-specific schema manifest for every migration version. Independent QA PASS (`.team/evidence/T-004/qa-cycle-4.md`: 209 tests, 13 spawn executions, both cycle-3 races reproduced as closed) and adversarial critic CONCERNS with no blocker (`.team/evidence/T-004/critic-cycle-4.md`). Operational follow-ups (backup accumulation on a malformed legacy file, lock-timeout message, contention classifier) are queued for T-005 in `working/ISSUE_QUEUE.md`.
 
 #### T-005 — Checkpoint eBay publication [TODO]
 
@@ -174,6 +177,43 @@ Acceptance criteria:
 - [ ] AC4: Approval remains disabled until all hard blockers and required confirmations are resolved. Verify: review gate truth-table test passes.
 
 Notes: Approved roadmap T-009.
+
+### Phase 1b — Manual AI mode (proposed 2026-09-10)
+
+#### T-026 — Add the manual paste AI provider core [TODO]
+
+Depends: T-003
+Parallel-group: G (file surface disjoint from T-004)
+Files: `src/ai/manual_provider.py`, `src/core/orchestrator.py`, `src/core/settings.py`, `.env.example`, `tests/test_manual_provider.py`
+Issue: [#10](https://github.com/Pliskin-Industries/Lister-Bridge/issues/10)
+Gate cleared 2026-09-10: the owner approved FMEA Amendment 6 (PI-014) and issue creation (D-TEAM-008).
+
+Acceptance criteria:
+
+- [ ] AC1: `build_packet` renders the frozen extraction prompt, the sorted photo file names, a deterministic packet ID, and the echo instruction. Verify: identical inputs produce byte-identical packets; different photo sets produce different IDs.
+- [ ] AC2: `ManualProvider` satisfies `AIProvider`; with a stored response it returns JSON with `packet_id` stripped so `vision_agent.extract_item` parses unchanged, and without one raises `ManualResponsePending` carrying the packet. Verify: named tests, plus the existing PI-004/PI-005 vision tests pass with the manual provider substituted.
+- [ ] AC3: A reply with a missing or mismatched packet ID is rejected before contract parsing and the item stays pending. Verify: mismatch fixture raises `ManualPacketMismatch`; no state change.
+- [ ] AC4: `scan_and_prepare` lists pending manual items in `ScanSummary.pending`, leaves their status `NEW` rather than `ERROR`, and completes them on rescan once a response is stored. Verify: orchestrator test with the manual provider.
+- [ ] AC5: `AI_PROVIDER=manual` removes `GEMINI_API_KEY` from `missing_required`; the default `gemini` keeps it; the module imports without streamlit or google-genai. Verify: settings tests and an import test.
+
+Notes: Owner request 2026-09-10; design of record is `docs/proposals/v2.1_manual_paste_ai_provider.md`. Ports the Machine Interview manual-adapter pattern (bound packet ID, two-surface workflow).
+
+#### T-027 — Render the manual paste workflow in the review UI [TODO]
+
+Depends: T-026
+Parallel-group: serial
+Files: `src/ui/app.py`, `src/ui/help_content.py`, `src/ui/review.py`, `tests/test_help_content.py`, `tests/test_review.py`
+Issue: [#11](https://github.com/Pliskin-Industries/Lister-Bridge/issues/11)
+
+Acceptance criteria:
+
+- [ ] AC1: Provider construction follows `AI_PROVIDER`, and the sidebar names the active mode. Verify: Streamlit-free selector test in `review.py`.
+- [ ] AC2: Each pending item shows its photos with file paths, the packet in a copyable code block, and a paste area; "Use response" stores the reply keyed by packet ID and re-runs the scan. Verify: view-model test plus captured UI text.
+- [ ] AC3: Mismatch and parse failures display human-readable guidance with no traceback and keep the item pending. Verify: message-formatting test.
+- [ ] AC4: The Help tab gains a "Manual AI mode" section and every new `TIPS` key is referenced in `app.py`. Verify: existing help-content tests pass.
+- [ ] AC5: The owner's first operator UI test runs against this task at `READY-FOR-QA`; no operator testing is requested earlier. Verify: owner smoke transcript under `.team/evidence/T-027/`.
+
+Notes: Owner decision 2026-09-10 defers all operator testing until this UI exists.
 
 ### Phase 2 — Guided setup and first release gate
 

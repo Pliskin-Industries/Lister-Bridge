@@ -245,3 +245,89 @@ The refresh token is the single hardest credential: it requires an authorization
 - [ ] Proposal reviewed and adopted/amended by Alan.
 - [ ] Sessions A–E queued as Issues with the proposal as spec-of-record.
 - [ ] FMEA amendment approved before any implementation session runs.
+
+## Issue: [T-026] Add the manual paste AI provider core
+**Labels:** feature, ai, onboarding
+**Milestone:** Roadmap epic #7 (Phase 1b — Manual AI mode)
+**Depends on:** #8 (T-003)
+**Assignee:** GhengisPliskin
+**Created 2026-09-10 as #10** (https://github.com/Pliskin-Industries/Lister-Bridge/issues/10) after owner approval of FMEA Amendment 6. Entry retained until the next Housekeeping reset.
+
+# Objective
+
+Add a subscription-chat AI route: Lister-Bridge renders a self-contained extraction packet per item, the operator pastes it (with the item photos) into any chat, and pastes the JSON reply back. The reply is verified against a deterministic packet ID and then parsed by the unchanged `vision_agent` path, so PI-004 and PI-005 hold without a Gemini API key.
+
+Parent roadmap: #7. Design of record: `docs/proposals/v2.1_manual_paste_ai_provider.md`.
+
+## Expected Files
+
+- `src/ai/manual_provider.py`
+- `src/core/orchestrator.py`
+- `src/core/settings.py`
+- `.env.example`
+- `tests/test_manual_provider.py`
+
+## Acceptance Criteria
+
+- [ ] `build_packet` is deterministic over prompt, sorted photo names, and adapter version.
+- [ ] `ManualProvider` implements `AIProvider`; stored reply returns stripped JSON, missing reply raises `ManualResponsePending`.
+- [ ] Missing or mismatched packet ID is rejected before contract parsing (PI-014).
+- [ ] `ScanSummary.pending` lists pending items with status `NEW`, completed on rescan.
+- [ ] `AI_PROVIDER=manual` drops `GEMINI_API_KEY` from `missing_required`; module imports without streamlit or google-genai.
+
+## Safety Boundary
+
+- No clipboard or browser automation. No change to `src/contracts/`, state schema, publication, or pricing.
+- Tests use fixture images and canned replies; no network, no credentials, no `%APPDATA%/ListerBridge`.
+
+## Issue: [T-027] Render the manual paste workflow in the review UI
+**Labels:** feature, ui, onboarding
+**Milestone:** Roadmap epic #7 (Phase 1b — Manual AI mode)
+**Depends on:** T-026 issue
+**Assignee:** GhengisPliskin
+**Created 2026-09-10 as #11** (https://github.com/Pliskin-Industries/Lister-Bridge/issues/11). Entry retained until the next Housekeeping reset.
+
+# Objective
+
+Surface the manual paste workflow in the Streamlit review UI: pending item cards with photos and paths, a copyable packet block, a paste area with fail-closed guidance, and a Help section. This is the owner's first operator UI test point.
+
+Parent roadmap: #7. Design of record: `docs/proposals/v2.1_manual_paste_ai_provider.md`.
+
+## Expected Files
+
+- `src/ui/app.py`
+- `src/ui/help_content.py`
+- `src/ui/review.py`
+- `tests/test_help_content.py`
+- `tests/test_review.py`
+
+## Acceptance Criteria
+
+- [ ] Provider construction follows `AI_PROVIDER`; sidebar names the active mode.
+- [ ] Pending cards show photos with paths, a copyable packet, and a paste area; "Use response" stores by packet ID and rescans.
+- [ ] Mismatch and parse failures show human-readable guidance, no traceback, item stays pending.
+- [ ] Help tab gains "Manual AI mode"; every new `TIPS` key is referenced in `app.py`.
+- [ ] Owner smoke transcript recorded under `.team/evidence/T-027/`.
+
+## Issue: State-store hardening follow-ups from the T-004 cycle-4 adversarial review
+**Labels:** hardening, state, follow-up
+**Milestone:** Roadmap epic #7 (apply during T-005, which owns the next `src/core/state_store.py` change)
+**Depends on:** #9 (T-004, DONE)
+**Assignee:** GhengisPliskin
+**Queued:** 2026-09-10 from `.team/evidence/T-004/critic-cycle-4.md`. None of these blocked T-004; no code changed after the QA PASS.
+
+# Objective
+
+Close the operational concerns the cycle-4 critic confirmed without weakening the fail-closed migration behavior.
+
+## Acceptance Criteria
+
+- [ ] C-1: A persistently malformed legacy database does not accumulate one token-bearing backup per failed launch (either validate the legacy layout before snapshotting, or retain at most one backup per unchanged schema state). Update `test_malformed_or_missing_legacy_schema_fails_without_version_stamp` to the chosen rule.
+- [ ] C-2: A constructor that times out waiting at `BEGIN IMMEDIATE` reports a lock timeout, not "migration failed and was rolled back".
+- [ ] N-3: `_is_lock_contention` returns False when `sqlite_errorcode` is present and outside BUSY/LOCKED, instead of falling back to message matching.
+- [ ] N-8: `_PATH_LOCKS` does not retain one lock per `:memory:` store URI.
+- [ ] Plausible: `_create_backup` handles a UNC-hosted database path (or documents it as unsupported).
+
+## Safety Boundary
+
+Same as T-004: temporary databases and fake tokens only; no `%APPDATA%/ListerBridge`, `.env`, or credentials; publication claims remain T-005 scope.

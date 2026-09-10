@@ -27,3 +27,11 @@ Execute Tier-3 and v2 roadmap work on `tier3-v2-roadmap`, based on legacy commit
 ## D-TEAM-007 — Activate FMEA Amendment 5
 
 The human owner replied `execute` immediately after the branch handoff identified FMEA approval as the next gate. Before modifying the register, the primary agent recorded that response as approval of Amendment 5 exactly as previously presented. PI-010 9/4/8 (288), PI-011 7/5/6 (210), PI-012 7/5/5 (175), and PI-013 9/3/8 (216), together with their listed controls and the PI-003/PI-007/PI-008 mitigation corrections, are active as of July 14, 2026.
+
+## D-TEAM-008 — Activate FMEA Amendment 6 and Bind the Manual Paste Provider
+
+On September 10, 2026 the human owner approved three sitrep items in one reply: T-004 remediation cycle 4, creation of the T-026/T-027 issues with FMEA Amendment 6, and a durable Python 3.12 install under `%LOCALAPPDATA%`. The primary agent recorded PI-014 7/4/3 (84) with its packet-ID control exactly as presented in `docs/proposals/v2.1_manual_paste_ai_provider.md`. T-026 is bound to https://github.com/Pliskin-Industries/Lister-Bridge/issues/10 and T-027 to https://github.com/Pliskin-Industries/Lister-Bridge/issues/11. Gemini remains the default AI route; the manual route must reuse the frozen extraction prompt and parser.
+
+## D-TEAM-009 — Operator Testing Waits for a Working UI
+
+The owner defers all hands-on testing until a working UI exists. T-027 is the first operator test point. Agent-side QA, adversarial review, and evidence continue unchanged; no smoke transcript, credential entry, or sandbox action is requested from the owner before T-027 reaches `READY-FOR-QA`.

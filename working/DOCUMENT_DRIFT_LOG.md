@@ -61,3 +61,30 @@ Processed during Housekeeping sessions, then cleared.
 - `CLAUDE.md` Stack line.
 **Action required:** none further — patched in this session (see per-file summary below). `docs/FMEA.md` PI-009 **Status**/RPN were deliberately left unchanged (structure/scores are frozen per Ground Rule 8); note for a human reviewer that the mitigation (`EbayClient.validate_offer`) is actually implemented per `working/CODE_DECISIONS_PATCH.md` C1-8, so the Status column ("Open — mitigation planned") may itself be stale and could warrant a proper FMEA Amendment Proposal (Ground Rule 9) rather than a silent Housekeeping edit.
 **Processed 2026-07-03 (pending human commit):** All three patched as described above.
+
+## Drift Entry — 2026-09-10
+**Changed fact:** GitHub repository owner `GhengisPliskin/Lister-Bridge` → `Pliskin-Industries/Lister-Bridge` (observed via `gh repo view`; the `origin` remote URL still names `GhengisPliskin` and redirects).
+**Triggering session:** 2026-09-10 sitrep and manual-provider planning session.
+**Stale documents:**
+- `CLAUDE.md` — "Repo:" line.
+- `.team/DECISIONS.md` D-TEAM-001 — epic URL.
+- `.team/PLAN.md` and `.team/STATE.md` — issue URLs (redirect, still resolve).
+- `CONTRIBUTING.md` — repository links (T-025 AC2 already covers this file).
+- `.git/config` — remote URL (not a document; update with `git remote set-url` when the owner confirms the transfer).
+**Action required:** Owner confirms the transfer, then T-025 patches the links in one pass.
+
+## Drift Entry — 2026-09-10
+**Changed fact:** `README.md` gained a "Development Status" section with a Mermaid Gantt at direct owner request, outside an active PLAN task.
+**Triggering session:** 2026-09-10 sitrep session.
+**Stale documents:**
+- `README.md` itself — the Gantt encodes projected dates that go stale as tasks move; refresh it at each phase gate.
+- `.team/PLAN.md` — T-025 AC3 (README review checklist) should include "Gantt matches PLAN task status" so the section is maintained.
+**Action required:** Bind the README change to T-025 retroactively; add the Gantt-currency check to T-025 AC3 during the next PLAN edit.
+
+## Drift Entry — 2026-09-10
+**Changed fact:** Local verification baseline "198 tests pass on `.venv-py312`" → not reproducible; the venv's base interpreter in `%TEMP%\ListerBridge-Python312` lost its DLLs and standard library to Temp cleanup.
+**Triggering session:** 2026-09-10 sitrep session.
+**Stale documents:**
+- `.team/evidence/T-003/qa.md` — describes the Temp-hosted interpreter as the reproducible baseline.
+- `scripts/verify.ps1` — prefers `.venv-py312` without checking that it launches.
+**Action required:** Owner picks a permanent Python 3.12 location; rebuild the venv; consider a launch check in `verify.ps1` that falls back or fails with a clear message. Lesson recorded in `.team/LESSONS.md`.

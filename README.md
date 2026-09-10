@@ -7,6 +7,72 @@ resolve ambiguities before publishing directly to eBay via the REST Sell Invento
 
 ---
 
+## Development Status
+
+Roadmap work runs on the `tier3-v2-roadmap` branch; `main` is the protected v1.2 legacy
+baseline. Task status of record is `.team/PLAN.md`; resumable context is `.team/STATE.md`.
+Bars to the right of the today marker are working-day projections that assume the
+pending owner decisions land this week. They are estimates, not commitments.
+
+```mermaid
+gantt
+    title Lister-Bridge delivery timeline (status as of 2026-09-10)
+    dateFormat YYYY-MM-DD
+    axisFormat %b %Y
+    excludes weekends
+
+    section Legacy v1.x on main
+    Phases 1 to 5 and v1.2 hardening               :done, legacy, 2026-03-30, 2026-07-09
+
+    section Phase 0 Governance
+    T-001 Tier-3 workspace                          :done, t001, 2026-07-14, 1d
+    T-002 Governance precedence and issue binding   :done, t002, 2026-07-14, 1d
+    T-003 Reproducible Windows verification         :done, t003, 2026-07-14, 2d
+
+    section Phase 1 Safety kernel
+    T-004 Thread-safe state migrations (ESCALATE)   :crit, active, t004, 2026-07-15, 2026-09-19
+    T-005 Checkpoint eBay publication               :t005, after t004, 5d
+    T-006 Fail-closed review candidates             :t006, after t005, 4d
+    T-007 Category aspects and publication input    :t007, after t006, 4d
+    T-008 Decouple drafts and harden ingestion      :t008, after t007, 4d
+    T-009 Truthful persistent review queue          :t009, after t008, 5d
+
+    section Phase 1b Manual AI mode (proposed)
+    T-026 Manual paste provider core                :t026, 2026-09-11, 4d
+    T-027 Manual paste review UI                    :t027, after t026, 3d
+    First operator UI test                          :milestone, m1, after t027, 0d
+
+    section Phase 2 Guided setup
+    T-010 Setup Tier 1                              :t010, after t009, 4d
+    T-012 Setup Tier 3 OAuth (ESCALATE)             :t012, after t010, 5d
+    T-011 Setup Tier 2 policies and locations       :t011, after t012, 3d
+    T-013 Sandbox v1.3 gate (needs credentials)     :crit, t013, after t011, 5d
+
+    section Phase 3 Closed pricing loop
+    T-014 Record and poll listing outcomes          :t014, after t013, 5d
+    T-015 Category pricing prior                    :t015, after t014, 3d
+    T-016 Stale-listing repricing                   :t016, after t015, 4d
+    T-017 Closed-loop sandbox gate (needs buyer)    :crit, t017, after t016, 5d
+
+    section Phase 4 Features
+    T-018 Double-sale guard                         :t018, after t017, 3d
+    T-019 Photo quality coach                       :t019, after t017, 5d
+    T-020 Comp evidence transparency                :t020, after t018, 3d
+    T-021 Returns into vision review                :t021, after t019, 4d
+    T-022 Headless scheduled scans                  :t022, after t021, 5d
+
+    section Phase 4 Docs and release
+    T-023 Reconcile core documentation              :t023, after t022, 3d
+    T-025 Reconcile operational documentation       :t025, after t022, 3d
+    T-024 Sandbox v2 release gate                   :crit, t024, after t025, 5d
+    Sandbox-verified v2 release candidate           :milestone, m2, after t024, 0d
+```
+
+Legend: grey bars are done; the highlighted bar is in progress; red bars are escalation or
+live-sandbox gates that need an owner decision or external credentials.
+
+---
+
 ## Success Criteria
 
 | Metric | Target |

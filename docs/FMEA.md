@@ -29,6 +29,7 @@
 | PI-010 | A crash or concurrent approval duplicates a remote publication, fees, or sale. | 9/4/8 (288) | Use an atomic composite claim, persisted remote checkpoints, deterministic SKU/offer reconciliation, and concurrency/fault-injection tests. | Open — mitigation planned | State/Integration Eng |
 | PI-012 | Outcome polling exceeds limits or misses transitions, leaving pricing and review guidance stale. | 7/5/5 (175) | Poll only due records; persist `last_checked`; honor `Retry-After` with jitter; maintain a rate budget; use `UNKNOWN` on ambiguity. | Open — mitigation planned | API/State Eng |
 | PI-013 | Incomplete environment, account, marketplace, or SKU identity mutates or attributes the wrong listing. | 9/3/8 (216) | Key by environment, seller account, marketplace, SKU, offer ID, and listing ID; forbid SKU-only joins; isolate accounts in tests; verify remote state after writes. | Open — mitigation planned | Integration/Data Eng |
+| PI-014 | A manually pasted model reply is attributed to the wrong item, producing a listing whose specifics and defects describe a different object. | 7/4/3 (84) | Embed a deterministic packet ID in the manual prompt, require it echoed in the reply, and verify it before parsing; mismatches reject and keep the item pending. | Open — mitigation planned | AI/UI Eng |
 
 ---
 
@@ -40,6 +41,17 @@
 **Approval record:** The human owner replied `execute` on July 14, 2026, immediately after the branch handoff identified FMEA approval as the next gate. Before modifying the register, the Tier-3 primary agent recorded that response as approval of the four scores and controls exactly as previously presented.
 
 The active register now replaces the obsolete CLI mitigations for PI-003, PI-007, and PI-008 and adds PI-010 through PI-013. The active rows are the authoritative scores, controls, owners, and status.
+
+---
+
+## FMEA Amendment 6
+
+**Date:** September 10, 2026
+**Triggering task:** T-026 and T-027 (manual paste AI provider), roadmap epic #7
+**Status:** Approved and active
+**Approval record:** The human owner replied "Approved on 1-3" on September 10, 2026 to the sitrep item that presented PI-014 with score 7/4/3 (84) and its control exactly as recorded in `docs/proposals/v2.1_manual_paste_ai_provider.md` §4.1. The Tier-3 primary agent recorded that response before modifying the register.
+
+The amendment is additive: PI-014 joins the Review and Publication register. No existing score, control, owner, or status changes. PI-014 is below the RPN 100 threshold and therefore does not enter the High-Risk Mitigation Map; its mitigation tasks are T-026 (packet ID verification) and T-027 (pending-item UI).
 
 ---
 
@@ -77,3 +89,4 @@ The active register now replaces the obsolete CLI mitigations for PI-003, PI-007
 | March 29, 2026 | Finalized statuses for sub-100 RPN items based on SRE recommendations | AI Systems Reliability Engineer | 3 |
 | March 29, 2026 | Corrected statuses: items with unbuilt mitigations moved from Mitigated to Open — mitigation planned | Calibration Review | 4 |
 | July 14, 2026 | Activated Streamlit mitigation corrections and PI-010–PI-013 after exact-score approval | Human owner and Tier-3 primary agent | 5 |
+| September 10, 2026 | Added PI-014 (manual reply misattribution) for the manual paste AI provider after owner approval | Human owner and Tier-3 primary agent | 6 |
