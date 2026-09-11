@@ -34,6 +34,12 @@ Primary Responsibilities:
     (src.ui.help_content.TIPS) to the Scan/condition/description/Approve
     widgets via their help= parameter, and append the error-banner /
     stale-cache tips to the existing st.error/st.warning messages.
+  - Select the AI route from AI_PROVIDER via src.ui.review.build_provider
+    (Gemini API or manual paste) and name it in the sidebar. In manual mode,
+    render one pending card per item waiting for a reply: photos with their
+    folder, the copyable packet, a paste box, and a "Use response" action that
+    verifies the reply's packet ID, stores it in a dedicated session dict, and
+    re-runs the scan (T-027).
 Key Interfaces:
   - Input: Drive batches via the orchestrator; operator edits via Streamlit widgets;
     credential values entered on the Setup tab.
@@ -48,6 +54,9 @@ FMEA Constraints Enforced:
   - R-STATE — Setup writes to the exact .env path load_app_dotenv() itself
     searches (src.core.settings.settings_env_path), so saved credentials are
     the ones the app actually loads on next run.
+  - PI-014 — a pasted AI reply is applied only after its packet ID matches the
+    item's packet; every rejection is shown as plain guidance, never a
+    traceback, and the item stays pending.
 
 Run:  streamlit run src/ui/app.py
 This module is a thin shell; the testable logic lives in src/ui/review.py,
@@ -61,7 +70,6 @@ import os
 
 import streamlit as st
 
-from src.ai.provider import GeminiProvider
 from src.api.ebay_client import EbayClient
 from src.contracts import DraftOutput, VisionAgentOutput
 from src.core import orchestrator
@@ -105,6 +113,175 @@ def _get_ebay_client(store: StateStore) -> EbayClient:
     if "ebay_client" not in st.session_state:
         st.session_state["ebay_client"] = EbayClient(state_store=store)
     return st.session_state["ebay_client"]
+
+
+def _get_manual_replies() -> dict:
+    """
+    Return the session's dedicated manual-reply store (packet_id -> raw reply).
+
+    Kept as its own nested dict inside st.session_state so UUID packet keys
+    never mix with widget keys and the whole session state is never exposed
+    to the provider.
+
+    Returns:
+        The dict stored under st.session_state["manual_replies"].
+
+    Side Effects:
+        Creates the dict on first call.
+    """
+    if "manual_replies" not in st.session_state:
+        st.session_state["manual_replies"] = {}
+    return st.session_state["manual_replies"]
+
+
+def _get_provider():
+    """
+    Build the AIProvider selected by the saved AI_PROVIDER setting.
+
+    Returns:
+        A ManualProvider bound to the session reply store, or a GeminiProvider.
+
+    Side Effects:
+        Reads the .env via settings.read_settings(); no network call.
+
+    FMEA Constraints:
+        R-COST / PI-014 — route selection and reply verification live in
+        src.ui.review.build_provider / ManualProvider, not here.
+    """
+    return review.build_provider(settings_logic.read_settings(), _get_manual_replies())
+
+
+def _run_scan(store: StateStore) -> bool:
+    """
+    Run one Drive scan and store its results in session state.
+
+    Args:
+        store: The session's StateStore.
+
+    Returns:
+        True when the scan completed; False when it raised. The failure text
+        is kept in st.session_state["scan_failure"] so it survives a rerun and
+        is shown in the sidebar on the next render (T-027 critic F2).
+
+    Side Effects:
+        Drive downloads and AI calls (or pending packets in manual mode);
+        state-store writes; sets st.session_state payloads, scan_errors,
+        scan_stale_cache, scan_pending, and scan_failure.
+
+    FMEA Constraints:
+        PI-001 — a scan failure is surfaced as a message, never a traceback.
+    """
+    try:
+        provider = _get_provider()
+        # scan_and_prepare returns a ScanSummary (payloads + any
+        # per-batch errors + a stale-cache flag) rather than a bare
+        # list, so a single bad batch (e.g. a Gemini JSON parse
+        # failure or a DriveFetchError) no longer aborts the whole
+        # scan silently — its failure is surfaced below instead.
+        summary = orchestrator.scan_and_prepare(
+            provider, store, ebay_client=_get_ebay_client(store)
+        )
+        st.session_state["payloads"] = summary.payloads
+        st.session_state["scan_errors"] = summary.errors
+        st.session_state["scan_stale_cache"] = summary.stale_cache
+        # Manual route: items whose vision step awaits a pasted reply.
+        st.session_state["scan_pending"] = summary.pending
+        st.session_state.pop("scan_failure", None)
+        return True
+    except Exception as exc:
+        # Persist the message instead of drawing it here: a deferred scan
+        # runs at the very end of the page and is followed by a rerun, which
+        # would wipe an st.error drawn at this point.
+        st.session_state["scan_failure"] = f"Scan failed: {type(exc).__name__}: {exc}"
+        return False
+
+
+def _request_rescan(flash: str | None = None) -> None:
+    """
+    Ask main() to re-run the scan after every widget on the page has rendered.
+
+    Streamlit drops the state of any keyed widget that was not registered in
+    the run that ends with st.rerun(). Calling st.rerun() from inside a card's
+    button handler therefore reverted operator edits on every card drawn after
+    it, including PI-004 defect-disclosure text (T-027 critic F1). The handler
+    now only sets this flag; main() performs the scan and the rerun last.
+
+    Args:
+        flash: Optional one-line notice to show at the top of the review tab
+            on the next render, since anything drawn before a rerun vanishes.
+
+    Side Effects:
+        Sets st.session_state["rescan_requested"] and optionally ["flash"].
+    """
+    st.session_state["rescan_requested"] = True
+    if flash:
+        st.session_state["flash"] = flash
+
+
+def _render_pending_item(pending, store: StateStore) -> None:
+    """
+    Render one item that is waiting for an operator-pasted AI reply.
+
+    Args:
+        pending: An orchestrator.PendingManualItem from the last scan.
+        store: The session's StateStore. Kept in the signature for parity with
+            _render_item; the rescan itself is deferred to main() (cycle 2).
+
+    Side Effects:
+        Draws the photos, the copyable packet, the checklist, and a paste box.
+        "Use response" verifies the reply through review.apply_manual_reply;
+        on success it stores the reply and re-runs the scan, on failure it
+        shows guidance and leaves the item pending.
+
+    FMEA Constraints:
+        PI-014 — the reply is applied only when its packet ID matches.
+        PI-008 — photos, names, and one code block; never raw JSON dumps.
+    """
+    view = review.pending_item_view(pending)
+    st.subheader(f"Awaiting your AI reply  ·  {view.folder_name}  ·  `{view.item_sku}`")
+    photos_col, packet_col = st.columns([1, 1])
+
+    with photos_col:
+        # The production cache is one flat folder of Drive-ID-named files, so
+        # each photo's full path is shown beside its thumbnail (AC2, critic F11).
+        st.markdown(f"**Photos to attach** (folder: `{view.photo_folder}`)")
+        present = set(review.existing_image_paths(view.image_paths))
+        for path in view.image_paths:
+            st.caption(f"`{path}`")
+            if path in present:
+                st.image(path, width="stretch")
+        missing = len(view.image_paths) - len(present)
+        if missing:
+            st.caption(f"({missing} photo(s) not found locally; re-run Scan to refresh the cache)")
+
+    with packet_col:
+        st.markdown("**Steps**")
+        for index, step in enumerate(view.checklist, 1):
+            st.markdown(f"{index}. {step}")
+        st.markdown("**Packet to copy**")
+        st.caption(TIPS["manual_packet"])
+        # st.code supplies the copy-to-clipboard control; no clipboard
+        # automation of our own is needed or wanted.
+        st.code(view.prompt_text, language="markdown")
+        st.caption(f"Packet ID: `{view.packet_id}`")
+        # Widgets are keyed by SKU, not packet ID, so two items that ever
+        # shared a packet ID could not collide on widget keys (critic F8).
+        raw = st.text_area(
+            "Paste the model's JSON reply",
+            key=f"reply_{view.item_sku}",
+            height=160,
+            help=TIPS["manual_reply"],
+        )
+        if st.button("Use response", key=f"use_reply_{view.item_sku}"):
+            provider = _get_provider()
+            result = review.apply_manual_reply(provider, pending.packet, raw)
+            if result.ok:
+                # Do NOT scan or rerun here: the rest of the page has not
+                # rendered yet and a rerun now would drop its widget state
+                # (critic F1). main() performs the deferred scan and rerun.
+                _request_rescan(flash=result.message)
+            else:
+                st.error(result.message)
 
 
 def _vision_from_payload(payload) -> VisionAgentOutput:
@@ -240,6 +417,16 @@ def _render_item(payload, store) -> None:
             if is_draft else "Approve & Publish to eBay"
         )
 
+        # ── Manual route: let the operator redo a wrong reply (critic F3) ─────
+        # An accepted reply that described the wrong item (wrong photos were
+        # attached and the model did not answer MISMATCH) would otherwise be
+        # reused on every rescan with no way out short of restarting the app.
+        if review.provider_mode(settings_logic.read_settings()) == settings_logic.AI_PROVIDER_MANUAL:
+            if st.button("Redo AI reply", key=f"redo_reply_{payload.item_sku}",
+                         help=TIPS["redo_reply"]):
+                review.release_manual_reply(_get_manual_replies(), payload.local_image_paths)
+                _request_rescan(flash=f"Reply for {payload.item_sku} discarded; paste a new one.")
+
         # ── The human gate (PI-007) ───────────────────────────────────────────
         if st.button(button_label, disabled=(bool(problems) and not is_draft),
                      key=f"approve_{payload.item_sku}", help=TIPS["approve_button"]):
@@ -247,6 +434,14 @@ def _render_item(payload, store) -> None:
                 result = orchestrator.fulfill_approved(
                     edited, store, target=target, ebay_client=_get_ebay_client(store),
                 )
+                # Manual route: after an eBay publish the pasted reply has
+                # served its purpose. Drop it so it can never be reused against
+                # replaced photo bytes later in this session (T-026 critic F2).
+                # Draft targets leave the item unpublished and therefore
+                # re-scanned, so their reply is kept; releasing it made every
+                # drafted item ask for a second paste (T-027 critic F4).
+                if not isinstance(result, DraftOutput):
+                    review.release_manual_reply(_get_manual_replies(), payload.local_image_paths)
                 if isinstance(result, DraftOutput):
                     st.success(
                         f"Draft for {result.platform_label} written to "
@@ -283,24 +478,34 @@ def _render_review_tab(store: StateStore) -> None:
         review card (see _render_item). May trigger a Drive scan or an eBay
         publish/draft action.
     """
+    # The route is read once per run and shared by the sidebar banner and the
+    # pending-card logic below, so the two can never disagree within a run.
+    mode_values = settings_logic.read_settings()
+    manual_mode = review.provider_mode(mode_values) == settings_logic.AI_PROVIDER_MANUAL
+
     with st.sidebar:
         st.header("Scan")
+        # Name the active AI route so the operator knows whether Scan will
+        # call the Gemini API or produce packets to paste by hand (T-027 AC1).
+        st.caption(
+            f"AI route: **{review.provider_mode_label(mode_values)}**",
+            help=TIPS["provider_mode"],
+        )
+        if manual_mode:
+            st.info(
+                "Manual mode: Scan prepares a packet per item. Paste each packet "
+                "into your chat with the photos, then paste the reply back here."
+            )
         if st.button("Scan Drive for new items", help=TIPS["scan_button"]):
-            try:
-                provider = GeminiProvider()
-                # scan_and_prepare returns a ScanSummary (payloads + any
-                # per-batch errors + a stale-cache flag) rather than a bare
-                # list, so a single bad batch (e.g. a Gemini JSON parse
-                # failure or a DriveFetchError) no longer aborts the whole
-                # scan silently — its failure is surfaced below instead.
-                summary = orchestrator.scan_and_prepare(
-                    provider, store, ebay_client=_get_ebay_client(store)
-                )
-                st.session_state["payloads"] = summary.payloads
-                st.session_state["scan_errors"] = summary.errors
-                st.session_state["scan_stale_cache"] = summary.stale_cache
-            except Exception as exc:
-                st.error(f"Scan failed: {type(exc).__name__}: {exc}")
+            # Historical note: this handler used to construct GeminiProvider()
+            # directly and call scan_and_prepare inline; both moved to
+            # _get_provider() / _run_scan() so the manual-reply flow can re-run
+            # the same scan without duplicating the error handling.
+            _run_scan(store)
+        # A scan failure (from this button or a deferred rescan) is kept in
+        # session state so it is still visible after a rerun.
+        if st.session_state.get("scan_failure"):
+            st.error(st.session_state["scan_failure"])
 
         # Surface any per-batch failures and the stale-cache warning from the
         # last scan (previously the stale_warning flag from
@@ -325,10 +530,33 @@ def _render_review_tab(store: StateStore) -> None:
         # into the pipeline (e.g. writing them to a batch dir and feeding
         # drive_fetcher/orchestrator); out of scope for this fix.
 
+    # One-shot notice from the previous run (for example "Reply accepted"),
+    # shown here because anything drawn just before a rerun disappears.
+    flash = st.session_state.pop("flash", None)
+    if flash:
+        st.success(flash)
+
     payloads = st.session_state.get("payloads", [])
-    if not payloads:
+    pending = st.session_state.get("scan_pending", [])
+    if not payloads and not pending:
         st.info("No items prepared yet. Click **Scan Drive for new items** in the sidebar.")
         return
+
+    # Pending manual items come first: they are the operator's next action.
+    # If the route was switched away from manual after the last scan, the
+    # cards are stale: say so once instead of offering paste boxes whose
+    # replies could no longer be applied (cycle-2 critic C1).
+    if pending and not manual_mode:
+        st.info(
+            f"{len(pending)} item(s) were waiting for manual AI replies, but the "
+            "AI route is now Gemini API. Click **Scan Drive for new items** to "
+            "process them with Gemini, or set AI route back to manual on the "
+            "Setup tab."
+        )
+    elif pending:
+        for item in pending:
+            _render_pending_item(item, store)
+            st.divider()
 
     for payload in payloads:
         _render_item(payload, store)
@@ -510,6 +738,18 @@ def main() -> None:
         _render_setup_tab()
     with help_tab:
         _render_help_tab()
+
+    # Deferred rescan (manual route): every widget on every tab has now been
+    # registered for this run, so a rerun here preserves all operator edits
+    # (critic F1). The scan runs first so the rerun shows its results; a scan
+    # failure is persisted by _run_scan and shown in the sidebar afterwards.
+    if st.session_state.pop("rescan_requested", False):
+        if not _run_scan(store):
+            # A failed rescan must not be announced as success: drop the
+            # pending "Reply accepted" flash so only the sidebar failure shows
+            # (cycle-2 critic C2). The stored reply is kept for the next scan.
+            st.session_state.pop("flash", None)
+        st.rerun()
 
 
 if __name__ == "__main__":

@@ -24,6 +24,10 @@ FMEA Constraints Enforced:
   - PI-007 — "approve_button" and the workflow section both state that eBay
     publishes live immediately while FB/Mercari only ever write a local draft,
     matching src/marketplace/other_adapter.py's DRAFT_ONLY capability.
+  - PI-014 — "manual_packet", "manual_reply", and the "Manual AI mode" section
+    state that the packet ID must come back in the reply, that a wrong-item
+    reply is refused, and that the check covers the pasted reply rather than
+    the attached photos (T-027).
 
 NOTE: this module must NEVER import streamlit — it is imported by tests that do
 not have streamlit installed, and by src/ui/app.py, which does. This mirrors the
@@ -67,6 +71,26 @@ TIPS: dict[str, str] = {
         "These photos are served from the local cache because Drive was "
         "unreachable during the last Scan — verify they still match the item "
         "before approving."
+    ),
+    "provider_mode": (
+        "Set on the Setup tab (AI route). Gemini API uses your GEMINI_API_KEY; "
+        "Manual paste renders a packet per item for your own chat subscription "
+        "and needs no API key."
+    ),
+    "manual_packet": (
+        "Copy this whole block into a fresh chat with the listed photos "
+        "attached. The packet ID inside it must come back in the model's "
+        "reply, so a reply for another item is refused."
+    ),
+    "manual_reply": (
+        "Paste the model's JSON reply exactly as returned. If it says "
+        "MISMATCH, the photos you attached did not match the packet's list — "
+        "re-check them and send the packet again."
+    ),
+    "redo_reply": (
+        "Discards the AI reply behind this card and returns the item to "
+        "\"Awaiting your AI reply\" so you can paste a new one — use it when "
+        "the card describes the wrong item."
     ),
 }
 
@@ -118,8 +142,9 @@ HELP_SECTIONS: list[tuple[str, str]] = [
     (
         "Before you start",
         (
-            "Enter your Google Drive, Gemini, and eBay credentials on the "
-            "**Setup** tab, then use each **Test** button to confirm they work "
+            "Enter your Google Drive and eBay credentials on the **Setup** "
+            "tab, plus a Gemini API key unless you choose manual AI mode "
+            "(see below), then use each **Test** button to confirm they work "
             "before your first Scan.\n\n"
             "Drive folder layout: your staging folder should contain **one "
             "subfolder per item**, and each item's photos go inside its "
@@ -144,6 +169,28 @@ HELP_SECTIONS: list[tuple[str, str]] = [
             "7. For eBay, the source Drive batch is automatically archived so "
             "it will not be re-scanned. Draft targets leave the batch in "
             "staging until you separately archive or remove it."
+        ),
+    ),
+    (
+        "Manual AI mode",
+        (
+            "Set **AI route** to `manual` on the Setup tab to use your own "
+            "chat subscription (ChatGPT, Claude, Gemini) instead of a Gemini "
+            "API key. After Scan, each waiting item shows a packet.\n\n"
+            "1. Open a fresh chat; never reuse a chat from another item.\n"
+            "2. Attach the listed photos from the folder shown on the card.\n"
+            "3. Paste the whole packet as one message and send it.\n"
+            "4. Paste the model's JSON reply into the item's reply box and "
+            "click **Use response**; the item is then extracted and priced.\n\n"
+            "The reply carries a packet ID that must match the item; a reply "
+            "for another item is refused and the item stays waiting. If an "
+            "accepted reply describes the wrong item, click **Redo AI reply** "
+            "on its card to discard it and paste again. That check "
+            "covers the pasted reply, not the attached photos: if you attach "
+            "the wrong photos the model describes the wrong item, so always "
+            "compare the review card against the real item. Photos you attach "
+            "leave this computer under your chat provider's terms, exactly as "
+            "they do with the Gemini API."
         ),
     ),
     (

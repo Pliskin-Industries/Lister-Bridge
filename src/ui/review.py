@@ -22,15 +22,34 @@ FMEA Constraints Enforced:
   - PI-008 — surfaces tidy fields (no raw JSON) for the UI to render.
   - PI-004 — apply_operator_edits carries operator corrections to the defect-
     disclosure description through to the payload instead of discarding them.
+  - PI-014 / R-COST — build_provider selects the Gemini or manual paste route
+    from AI_PROVIDER; apply_manual_reply routes a pasted reply through the
+    packet-ID check and turns every rejection into operator-readable guidance
+    (T-027).
 """
 
 from __future__ import annotations
 
+import os
+import re
+from dataclasses import dataclass
+from pathlib import Path
+from typing import MutableMapping
 from urllib.parse import quote_plus
 
 from src.ai import margin_guard
+from src.ai.manual_provider import (
+    MISMATCH_WORD,
+    ManualPacket,
+    ManualPacketMismatch,
+    ManualProvider,
+    build_packet,
+)
+from src.ai.provider import AIProvider, GeminiProvider
+from src.ai.vision_agent import _EXTRACTION_PROMPT
 from src.api.ebay_client import EbayClient
 from src.contracts import ListingPayload, MarginGuardOutput, VisionAgentOutput
+from src.core import settings as settings_logic
 
 # eBay marketplace used for the research links.
 _SOLD_SEARCH_BASE = "https://www.ebay.com/sch/i.html"
@@ -242,3 +261,300 @@ def review_summary(
         "reasoning": pricing.reasoning,
         "missing_inputs": list(pricing.missing_inputs),
     }
+
+
+# ── AI route selection and the manual paste workflow (T-027) ──────────────────
+
+# Operator-facing names for the two AI routes, keyed by settings.ai_provider_mode.
+PROVIDER_LABELS: dict[str, str] = {
+    settings_logic.AI_PROVIDER_GEMINI: "Gemini API",
+    settings_logic.AI_PROVIDER_MANUAL: "Manual paste (your own chat subscription)",
+}
+
+# Chat UIs wrap a one-word answer in Markdown emphasis, code ticks, or quotes
+# and may add punctuation; normalize_manual_reply tolerates all of these via a
+# leading non-word-character skip and a word boundary (see the regex there).
+
+
+def provider_mode(values: dict) -> str:
+    """
+    Return the normalized AI route for the given settings.
+
+    Args:
+        values: Settings dict from settings.read_settings() or the Setup tab.
+
+    Returns:
+        settings.AI_PROVIDER_GEMINI or settings.AI_PROVIDER_MANUAL.
+
+    Side Effects:
+        None.
+    """
+    return settings_logic.ai_provider_mode(values)
+
+
+def provider_mode_label(values: dict) -> str:
+    """
+    Return the operator-facing label for the active AI route.
+
+    Args:
+        values: Settings dict.
+
+    Returns:
+        A short label for the sidebar banner (see PROVIDER_LABELS).
+
+    Side Effects:
+        None.
+    """
+    return PROVIDER_LABELS[provider_mode(values)]
+
+
+def build_provider(values: dict, manual_replies: MutableMapping[str, str]) -> AIProvider:
+    """
+    Construct the AIProvider selected by AI_PROVIDER.
+
+    Args:
+        values: Settings dict; AI_PROVIDER decides the route.
+        manual_replies: The caller-owned reply store (packet_id -> raw reply)
+            used only by the manual route. Pass a dedicated nested dict, not
+            the whole Streamlit session state, so UUID keys never mix with
+            widget keys.
+
+    Returns:
+        A ManualProvider bound to manual_replies, or a GeminiProvider (which
+        reads GEMINI_API_KEY lazily and makes no network call here).
+
+    Side Effects:
+        None at construction time.
+
+    FMEA Constraints:
+        R-COST — the manual route makes zero API calls.
+        PI-014 — the manual route verifies packet IDs before any reply is used.
+    """
+    if provider_mode(values) == settings_logic.AI_PROVIDER_MANUAL:
+        return ManualProvider(manual_replies)
+    return GeminiProvider()
+
+
+@dataclass(frozen=True)
+class PendingItemView:
+    """
+    Display model for one item waiting on an operator-pasted AI reply.
+
+    Attributes:
+        item_sku: The item's deterministic SKU.
+        folder_name: The Drive batch folder name.
+        batch_folder_id: The Drive batch folder ID.
+        packet_id: The ID the pasted reply must echo (PI-014).
+        prompt_text: The full packet text to copy into the chat.
+        image_paths: Local photo paths to display and attach, sorted by name.
+        image_names: File names only, matching the list inside the packet.
+        photo_folder: The common local folder holding the photos, for the
+            operator's file picker.
+        checklist: Ordered operator steps from the packet.
+    """
+
+    item_sku: str
+    folder_name: str
+    batch_folder_id: str
+    packet_id: str
+    prompt_text: str
+    image_paths: tuple[str, ...]
+    image_names: tuple[str, ...]
+    photo_folder: str
+    checklist: tuple[str, ...]
+
+
+def pending_item_view(pending) -> PendingItemView:
+    """
+    Flatten an orchestrator PendingManualItem into a display model.
+
+    Args:
+        pending: An object exposing item_sku, folder_name, batch_folder_id,
+            and packet (a ManualPacket), as orchestrator.PendingManualItem does.
+
+    Returns:
+        A PendingItemView with everything the pending card renders.
+
+    Side Effects:
+        None. Photo files are not opened.
+
+    FMEA Constraints:
+        PI-008 — the card shows photos, names, and one copyable block, not JSON.
+        PI-014 — the packet ID is exposed for the operator to recognise.
+    """
+    packet: ManualPacket = pending.packet
+    paths = tuple(packet.image_paths)
+    # All cache files for one batch share a directory; take the first path's
+    # parent so the operator knows where to browse when attaching photos.
+    photo_folder = str(Path(paths[0]).parent) if paths else ""
+    return PendingItemView(
+        item_sku=pending.item_sku,
+        folder_name=pending.folder_name,
+        batch_folder_id=pending.batch_folder_id,
+        packet_id=packet.packet_id,
+        prompt_text=packet.prompt_text,
+        image_paths=paths,
+        image_names=tuple(Path(p).name for p in paths),
+        photo_folder=photo_folder,
+        checklist=tuple(packet.operator_checklist),
+    )
+
+
+def normalize_manual_reply(raw: str) -> str:
+    """
+    Recover a decorated one-word MISMATCH answer; pass everything else through.
+
+    Chat interfaces often wrap a bare word in Markdown emphasis or add a full
+    stop (``**MISMATCH**``, ``MISMATCH.``). Without this step those variants
+    fall through to the JSON parser and the operator is told the reply was
+    malformed JSON instead of that the model flagged a photo mismatch.
+
+    Args:
+        raw: The pasted reply text.
+
+    Returns:
+        MISMATCH_WORD when the reply is that word under decoration and contains
+        no JSON object; otherwise the stripped original text.
+
+    Side Effects:
+        None.
+    """
+    text = (raw or "").strip()
+    if "{" in text:
+        return text
+    # A bare word, or the word followed by the model's own explanation
+    # ("**MISMATCH**: the second photo shows a different item"), both mean the
+    # model flagged the photos; neither contains a JSON object. Leading
+    # non-word characters (emphasis, quotes) are skipped and the word must end
+    # at a word boundary so "MISMATCHED" or "The MISMATCH..." do not qualify.
+    if re.match(rf"^[\W_]*{MISMATCH_WORD}\b", text, flags=re.IGNORECASE):
+        return MISMATCH_WORD
+    return text
+
+
+# Longest operator-facing message we will echo back; longer text is cut with
+# an ellipsis so a hostile or accidental multi-kilobyte paste cannot flood
+# the page (critic F7).
+_MESSAGE_MAX_LEN = 400
+
+
+def _truncate_message(text: str) -> str:
+    """
+    Cut an over-long message from the middle so both ends survive.
+
+    Args:
+        text: The operator-facing message.
+
+    Returns:
+        The text unchanged when it fits _MESSAGE_MAX_LEN; otherwise its head
+        and tail joined by an ellipsis. Keeping the tail preserves this item's
+        own packet ID, which the mismatch message places last (critic N1).
+
+    Side Effects:
+        None.
+    """
+    if len(text) <= _MESSAGE_MAX_LEN:
+        return text
+    keep = (_MESSAGE_MAX_LEN - 1) // 2
+    return text[:keep] + "…" + text[-keep:]
+
+
+@dataclass(frozen=True)
+class ManualReplyResult:
+    """
+    Outcome of applying a pasted reply.
+
+    Attributes:
+        ok: True when the reply was verified and stored.
+        message: Operator-facing text; never a traceback.
+    """
+
+    ok: bool
+    message: str
+
+
+def apply_manual_reply(provider: ManualProvider, packet: ManualPacket, raw: str) -> ManualReplyResult:
+    """
+    Verify and store one pasted reply, returning operator-readable guidance.
+
+    Args:
+        provider: The session's ManualProvider.
+        packet: The packet the reply answers (from the pending item).
+        raw: The pasted reply text.
+
+    Returns:
+        ManualReplyResult(ok=True, ...) when stored; otherwise ok=False with a
+        message that names the problem and the next step. The item stays
+        pending in every failure case because nothing is stored.
+
+    Side Effects:
+        On success, one entry is written to the provider's reply store.
+
+    FMEA Constraints:
+        PI-014 — a wrong-item or ID-less reply is refused here, before parsing.
+        PI-001 pattern — failures are human-readable messages, never tracebacks.
+    """
+    # The route is re-read from settings on every run, so a Setup-tab save of
+    # AI route = gemini can arrive while manual cards are still on screen
+    # (cycle-2 critic C1). Say so plainly instead of failing inside the guard.
+    if not isinstance(provider, ManualProvider):
+        return ManualReplyResult(
+            False,
+            "The AI route is no longer manual paste. Set AI route back to manual "
+            "on the Setup tab, or click Scan to process waiting items with the "
+            "Gemini API.",
+        )
+    text = normalize_manual_reply(raw if isinstance(raw, str) else "")
+    if not text:
+        return ManualReplyResult(False, "Paste the model's reply first, then click Use response.")
+    try:
+        provider.store_response(packet, text)
+    except ManualPacketMismatch as exc:
+        # The provider's messages are already operator-facing and name the IDs.
+        # The echoed ID is operator-controlled text, so cap the message length
+        # (critic F7).
+        return ManualReplyResult(False, _truncate_message(str(exc)))
+    except ValueError:
+        return ManualReplyResult(
+            False,
+            "The reply is not a JSON object. Copy the model's entire reply, "
+            "starting with { and ending with }, and paste it again.",
+        )
+    except Exception:  # noqa: BLE001 - a pathological paste must not crash the page
+        # For example a RecursionError from absurdly nested JSON (critic F6).
+        return ManualReplyResult(
+            False,
+            "The reply could not be read. Copy the model's JSON reply again "
+            "and paste only that.",
+        )
+    return ManualReplyResult(
+        True, "Reply accepted; re-scanning to extract and price this item."
+    )
+
+
+def release_manual_reply(manual_replies: MutableMapping[str, str], image_paths: list[str]) -> bool:
+    """
+    Drop the stored reply for an item once it has been fulfilled.
+
+    Rebuilds the item's packet ID from its photos so the reply cannot be reused
+    against a later same-named photo set in this session (critic F2 mitigation).
+
+    Args:
+        manual_replies: The session reply store.
+        image_paths: The fulfilled payload's local_image_paths.
+
+    Returns:
+        True if a reply was removed, False if none was stored.
+
+    Side Effects:
+        Removes at most one entry from manual_replies.
+    """
+    if not image_paths:
+        return False
+    packet_id = build_packet(image_paths, _EXTRACTION_PROMPT).packet_id
+    return manual_replies.pop(packet_id, None) is not None
+
+
+def existing_image_paths(image_paths) -> list[str]:
+    """Return the subset of paths that exist locally, preserving order."""
+    return [str(p) for p in image_paths if os.path.exists(str(p))]

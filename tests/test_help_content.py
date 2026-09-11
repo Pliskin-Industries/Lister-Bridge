@@ -23,11 +23,12 @@ _APP_PY_PATH = Path(__file__).resolve().parent.parent / "src" / "ui" / "app.py"
 _APP_SOURCE = _APP_PY_PATH.read_text(encoding="utf-8")
 _HELP_CONTENT_SOURCE = Path(help_content.__file__).read_text(encoding="utf-8")
 
-# The 7 headings HELP_SECTIONS must contain, in this exact order.
+# The 8 headings HELP_SECTIONS must contain, in this exact order.
 _EXPECTED_HEADINGS = [
     "What Lister-Bridge does",
     "Before you start",
     "The workflow",
+    "Manual AI mode",
     "Understanding warnings & errors",
     "Where your data lives",
     "Platforms",
@@ -48,7 +49,7 @@ def test_tips_values_non_empty_and_under_300_chars():
 
 
 def test_tips_has_expected_keys():
-    """The six documented contextual-hint locations are all present."""
+    """The ten documented contextual-hint locations are all present."""
     expected_keys = {
         "scan_button",
         "condition_select",
@@ -56,6 +57,10 @@ def test_tips_has_expected_keys():
         "approve_button",
         "error_banner",
         "stale_cache",
+        "provider_mode",
+        "manual_packet",
+        "manual_reply",
+        "redo_reply",
     }
     assert expected_keys.issubset(TIPS.keys())
 
@@ -89,7 +94,7 @@ def test_help_sections_bodies_non_empty():
 
 
 def test_help_sections_headings_present_in_order():
-    """The 7 expected headings appear, in exactly this order."""
+    """The 8 expected headings appear, in exactly this order."""
     headings = [heading for heading, _ in HELP_SECTIONS]
     # Filter to only the expected headings (in case of any incidental extras)
     # and confirm their relative order matches _EXPECTED_HEADINGS exactly.
@@ -172,3 +177,32 @@ def test_help_content_module_does_not_import_streamlit():
     # `from src.ui import help_content`) in an environment without
     # streamlit installed, so reaching this point is itself confirmation.
     assert help_content is not None
+
+
+# ── Manual AI mode (T-027 AC4, PI-014) ──────────────────────────────────────
+
+
+def test_manual_mode_section_states_packet_check_scope_and_photo_terms():
+    """
+    The Manual AI mode section must tell the operator that the packet ID
+    check covers the pasted reply (not the attached photos), that a
+    wrong-item reply is refused, and that attached photos leave the machine
+    under the chat provider's terms (T-026 critic F7).
+    """
+    body = dict(HELP_SECTIONS)["Manual AI mode"]
+    assert "Use response" in body
+    assert "packet ID" in body
+    assert "refused" in body
+    assert "not the attached photos" in body
+    assert "leave this computer" in body
+    assert "Setup" in body
+    assert "Redo AI reply" in body
+    before = dict(HELP_SECTIONS)["Before you start"]
+    assert "unless you choose manual AI mode" in before
+
+
+def test_manual_tips_mention_packet_id_and_mismatch():
+    """The manual-flow tips name the packet-ID rule and the MISMATCH answer."""
+    assert "packet ID" in TIPS["manual_packet"]
+    assert "MISMATCH" in TIPS["manual_reply"]
+    assert "API key" in TIPS["provider_mode"]

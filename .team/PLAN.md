@@ -198,7 +198,7 @@ Acceptance criteria:
 
 Notes: Owner request 2026-09-10; design of record is `docs/proposals/v2.1_manual_paste_ai_provider.md`. Ports the Machine Interview manual-adapter pattern (bound packet ID, two-surface workflow). Closed 2026-09-10: independent QA PASS (`.team/evidence/T-026/qa.md`, 233 tests) and adversarial critic CONCERNS with no blocker (`.team/evidence/T-026/critic.md`). Accepted concerns: manual mode is not operator-exposed until T-027 selects the provider; a stored reply survives a same-file-ID photo replacement within one session (mitigation routed to T-027, content-hash ID queued). Builder handoff: `.team/handoffs/T-026.md`.
 
-#### T-027 — Render the manual paste workflow in the review UI [TODO]
+#### T-027 — Render the manual paste workflow in the review UI [READY-FOR-QA]
 
 Depends: T-026
 Parallel-group: serial
@@ -213,7 +213,7 @@ Acceptance criteria:
 - [ ] AC4: The Help tab gains a "Manual AI mode" section and every new `TIPS` key is referenced in `app.py`. Verify: existing help-content tests pass.
 - [ ] AC5: The owner's first operator UI test runs against this task at `READY-FOR-QA`; no operator testing is requested earlier. Verify: owner smoke transcript under `.team/evidence/T-027/`.
 
-Notes: Owner decision 2026-09-10 defers all operator testing until this UI exists. Inherited from the T-026 review: AC1 must replace the `GeminiProvider()` construction on the Scan button and give the sidebar a manual-mode banner (critic F1); AC2 must call `ManualProvider.forget_response` when a payload is rendered or approved and pass a nested dict, not the whole session state, as the reply store (F2, F9); AC3 must recognise `MISMATCH` with Markdown emphasis or trailing punctuation (F4); AC4 Help text must state that the packet check covers the pasted reply, not the attached photos, and that photos leave the machine under the chat subscription's terms (F7).
+Notes: Owner decision 2026-09-10 defers all operator testing until this UI exists. Agent review complete 2026-09-11: cycle 1 QA PASS and critic BLOCK (mid-run rerun dropped widget state, reverting operator edits); cycle 2 fixed it, QA PASS (`.team/evidence/T-027/qa-cycle-2.md`), critic CONCERNS with no blocker (`critic-cycle-2.md`); C1/C2 folded in and re-verified (263 tests). AC1–AC4 are agent-verified; `DONE` waits on the owner's smoke test (AC5) per `.team/evidence/T-027/smoke-guide.md`. Inherited from the T-026 review: AC1 must replace the `GeminiProvider()` construction on the Scan button and give the sidebar a manual-mode banner (critic F1); AC2 must call `ManualProvider.forget_response` when a payload is rendered or approved and pass a nested dict, not the whole session state, as the reply store (F2, F9); AC3 must recognise `MISMATCH` with Markdown emphasis or trailing punctuation (F4); AC4 Help text must state that the packet check covers the pasted reply, not the attached photos, and that photos leave the machine under the chat subscription's terms (F7).
 
 ### Phase 2 — Guided setup and first release gate
 

@@ -35,3 +35,7 @@ On September 10, 2026 the human owner approved three sitrep items in one reply: 
 ## D-TEAM-009 — Operator Testing Waits for a Working UI
 
 The owner defers all hands-on testing until a working UI exists. T-027 is the first operator test point. Agent-side QA, adversarial review, and evidence continue unchanged; no smoke transcript, credential entry, or sandbox action is requested from the owner before T-027 reaches `READY-FOR-QA`.
+
+## D-TEAM-010 — Standing Commit, Merge, and Push Authorization Until the UI Is Complete
+
+On September 10, 2026 the owner approved commits and merges for all future roadmap work until the UI is complete, authorized pushing to `origin`, and authorized closing issues #9 and #10. This supersedes the per-commit gate in D-TEAM-006 for the duration of the UI track: `tier3-v2-roadmap` stays the working branch, `main` fast-forwards to it after each task closes with QA evidence, and both branches push to `origin`. Production publishing, credentials, and code signing remain excluded. The gate returns to per-task owner authorization when the owner declares the UI complete or withdraws this decision.
