@@ -331,3 +331,21 @@ Close the operational concerns the cycle-4 critic confirmed without weakening th
 ## Safety Boundary
 
 Same as T-004: temporary databases and fake tokens only; no `%APPDATA%/ListerBridge`, `.env`, or credentials; publication claims remain T-005 scope.
+
+## Issue: Manual provider hardening follow-ups from the T-026 review
+**Labels:** hardening, ai
+**Milestone:** Roadmap epic #7 (Phase 1b — Manual AI mode)
+**Depends on:** #10 (T-026), #11 (T-027)
+**Assignee:** GhengisPliskin
+**Queued:** 2026-09-10 from `.team/evidence/T-026/qa.md` and `.team/evidence/T-026/critic.md`. Create when replies are persisted across sessions (T-006) or when a non-Drive photo source is added, whichever comes first.
+
+# Objective
+
+Close the accepted T-026 review concerns that fall outside T-027's UI scope.
+
+## Acceptance Criteria
+- [ ] The packet ID incorporates local file size and modified time (or a content digest) when the files exist, so a same-name or same-Drive-ID photo replacement invalidates stored replies (QA finding 1, critic F2).
+- [ ] `parse_manual_response` rejects duplicate top-level `packet_id` keys via an `object_pairs_hook` (critic F3).
+- [ ] The "strip so `extra=\"forbid\"` parses" docstring rationale is corrected to describe `extract_item`'s key-selective parsing (critic F5).
+- [ ] `vision_agent.extract_item`'s docstring names `ManualResponsePending` as a propagated exception (critic F9).
+- [ ] Pending rescans skip the `NEW` upsert and cache-hit downloads for items already recorded pending in the same session (critic F8), or the cost is documented as accepted.

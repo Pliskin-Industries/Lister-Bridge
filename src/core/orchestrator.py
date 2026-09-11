@@ -42,6 +42,7 @@ import os
 from dataclasses import dataclass, field
 
 from src.ai.provider import AIProvider, GeminiProvider
+from src.ai.manual_provider import ManualPacket, ManualResponsePending
 from src.ai import margin_guard, vision_agent
 from src.contracts import (
     AdapterCapability,
@@ -86,6 +87,28 @@ class BatchError:
 
 
 @dataclass
+class PendingManualItem:
+    """
+    One item waiting for an operator-pasted AI reply (manual provider route).
+
+    Attributes:
+        item_sku: The deterministic SKU of the waiting item.
+        batch_folder_id: The Drive subfolder ID of the batch.
+        folder_name: Human-readable folder name for display.
+        packet: The ManualPacket the operator carries to the chat; its
+            image_paths are the downloaded local photos to attach.
+
+    FMEA Constraints:
+        PI-014 — the packet carries the ID the reply must echo.
+    """
+
+    item_sku: str
+    batch_folder_id: str
+    folder_name: str
+    packet: ManualPacket
+
+
+@dataclass
 class ScanSummary:
     """
     Aggregate result of scan_and_prepare: prepared payloads + failures.
@@ -105,15 +128,21 @@ class ScanSummary:
             stale local cache because a Drive download failed but a cached
             copy existed (drive_fetcher.download_batch_images' warning flag,
             previously discarded — see module docstring history).
+        pending: One PendingManualItem per batch whose vision step is waiting
+            for an operator-pasted reply (ManualProvider route). Not an error:
+            the item stays NEW and completes on a later scan.
 
     FMEA Constraints:
         PI-001 — stale_cache surfaces the previously-discarded warning flag
         from download_batch_images so the operator can see degraded data.
+        PI-014 — pending items expose their packet so the UI can display the
+        ID the operator's reply must echo.
     """
 
     payloads: list[ListingPayload] = field(default_factory=list)
     errors: list[BatchError] = field(default_factory=list)
     stale_cache: bool = False
+    pending: list[PendingManualItem] = field(default_factory=list)
 
     def __iter__(self):
         """
@@ -404,6 +433,8 @@ def scan_and_prepare(
         here — publishing requires explicit Approve). `.errors` holds one
         BatchError per batch that raised during preparation. `.stale_cache`
         is True if any prepared batch's images came from a stale local cache.
+        `.pending` holds one PendingManualItem per batch waiting for an
+        operator-pasted AI reply when `provider` is a ManualProvider.
         ScanSummary is iterable/sized over `.payloads` for backward
         compatibility with callers written against the old `list[ListingPayload]`
         return type.
@@ -441,6 +472,23 @@ def scan_and_prepare(
             payload, stale_warning = _prepare_one_batch(
                 batch, provider, store, ebay_client=ebay_client, cost_lookup=cost_lookup
             )
+        except ManualResponsePending as pending_exc:
+            # Manual provider route (T-026): the vision step is waiting for the
+            # operator to paste a reply for this item's packet. This is not a
+            # failure, so the item is NOT marked ERROR; it stays at NEW (set by
+            # _prepare_one_batch before the vision call) and the next scan
+            # retries it once a reply is stored. The packet is surfaced so the
+            # UI can show the photos, the prompt, and the ID the reply must
+            # echo (PI-014).
+            summary.pending.append(
+                PendingManualItem(
+                    item_sku=derive_sku(folder_id),
+                    batch_folder_id=folder_id,
+                    folder_name=folder_name,
+                    packet=pending_exc.packet,
+                )
+            )
+            continue
         except Exception as exc:  # noqa: BLE001 - one bad batch must never abort the scan
             # PI-001: record the failure against this batch's SKU so it is
             # visible in the state store (ItemStatus.ERROR) and in the scan

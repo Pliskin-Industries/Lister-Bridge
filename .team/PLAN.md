@@ -180,7 +180,7 @@ Notes: Approved roadmap T-009.
 
 ### Phase 1b — Manual AI mode (proposed 2026-09-10)
 
-#### T-026 — Add the manual paste AI provider core [TODO]
+#### T-026 — Add the manual paste AI provider core [DONE]
 
 Depends: T-003
 Parallel-group: G (file surface disjoint from T-004)
@@ -190,13 +190,13 @@ Gate cleared 2026-09-10: the owner approved FMEA Amendment 6 (PI-014) and issue 
 
 Acceptance criteria:
 
-- [ ] AC1: `build_packet` renders the frozen extraction prompt, the sorted photo file names, a deterministic packet ID, and the echo instruction. Verify: identical inputs produce byte-identical packets; different photo sets produce different IDs.
-- [ ] AC2: `ManualProvider` satisfies `AIProvider`; with a stored response it returns JSON with `packet_id` stripped so `vision_agent.extract_item` parses unchanged, and without one raises `ManualResponsePending` carrying the packet. Verify: named tests, plus the existing PI-004/PI-005 vision tests pass with the manual provider substituted.
-- [ ] AC3: A reply with a missing or mismatched packet ID is rejected before contract parsing and the item stays pending. Verify: mismatch fixture raises `ManualPacketMismatch`; no state change.
-- [ ] AC4: `scan_and_prepare` lists pending manual items in `ScanSummary.pending`, leaves their status `NEW` rather than `ERROR`, and completes them on rescan once a response is stored. Verify: orchestrator test with the manual provider.
-- [ ] AC5: `AI_PROVIDER=manual` removes `GEMINI_API_KEY` from `missing_required`; the default `gemini` keeps it; the module imports without streamlit or google-genai. Verify: settings tests and an import test.
+- [x] AC1: `build_packet` renders the frozen extraction prompt, the sorted photo file names, a deterministic packet ID, and the echo instruction. Verify: identical inputs produce byte-identical packets; different photo sets produce different IDs.
+- [x] AC2: `ManualProvider` satisfies `AIProvider`; with a stored response it returns JSON with `packet_id` stripped so `vision_agent.extract_item` parses unchanged, and without one raises `ManualResponsePending` carrying the packet. Verify: named tests, plus the existing PI-004/PI-005 vision tests pass with the manual provider substituted.
+- [x] AC3: A reply with a missing or mismatched packet ID is rejected before contract parsing and the item stays pending. Verify: mismatch fixture raises `ManualPacketMismatch`; no state change.
+- [x] AC4: `scan_and_prepare` lists pending manual items in `ScanSummary.pending`, leaves their status `NEW` rather than `ERROR`, and completes them on rescan once a response is stored. Verify: orchestrator test with the manual provider.
+- [x] AC5: `AI_PROVIDER=manual` removes `GEMINI_API_KEY` from `missing_required`; the default `gemini` keeps it; the module imports without streamlit or google-genai. Verify: settings tests and an import test.
 
-Notes: Owner request 2026-09-10; design of record is `docs/proposals/v2.1_manual_paste_ai_provider.md`. Ports the Machine Interview manual-adapter pattern (bound packet ID, two-surface workflow).
+Notes: Owner request 2026-09-10; design of record is `docs/proposals/v2.1_manual_paste_ai_provider.md`. Ports the Machine Interview manual-adapter pattern (bound packet ID, two-surface workflow). Closed 2026-09-10: independent QA PASS (`.team/evidence/T-026/qa.md`, 233 tests) and adversarial critic CONCERNS with no blocker (`.team/evidence/T-026/critic.md`). Accepted concerns: manual mode is not operator-exposed until T-027 selects the provider; a stored reply survives a same-file-ID photo replacement within one session (mitigation routed to T-027, content-hash ID queued). Builder handoff: `.team/handoffs/T-026.md`.
 
 #### T-027 — Render the manual paste workflow in the review UI [TODO]
 
@@ -213,7 +213,7 @@ Acceptance criteria:
 - [ ] AC4: The Help tab gains a "Manual AI mode" section and every new `TIPS` key is referenced in `app.py`. Verify: existing help-content tests pass.
 - [ ] AC5: The owner's first operator UI test runs against this task at `READY-FOR-QA`; no operator testing is requested earlier. Verify: owner smoke transcript under `.team/evidence/T-027/`.
 
-Notes: Owner decision 2026-09-10 defers all operator testing until this UI exists.
+Notes: Owner decision 2026-09-10 defers all operator testing until this UI exists. Inherited from the T-026 review: AC1 must replace the `GeminiProvider()` construction on the Scan button and give the sidebar a manual-mode banner (critic F1); AC2 must call `ManualProvider.forget_response` when a payload is rendered or approved and pass a nested dict, not the whole session state, as the reply store (F2, F9); AC3 must recognise `MISMATCH` with Markdown emphasis or trailing punctuation (F4); AC4 Help text must state that the packet check covers the pasted reply, not the attached photos, and that photos leave the machine under the chat subscription's terms (F7).
 
 ### Phase 2 — Guided setup and first release gate
 

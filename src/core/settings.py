@@ -195,6 +195,18 @@ SETTINGS_SCHEMA: tuple = (
                 secret=False,
                 default="gemini-3.5-flash",
             ),
+            SettingField(
+                key="AI_PROVIDER",
+                label="AI route",
+                help_text=(
+                    "gemini (default) calls the Gemini API with the key above. "
+                    "manual renders a copy/paste packet per item for your own "
+                    "chat subscription; no API key is needed."
+                ),
+                required=False,
+                secret=False,
+                default="gemini",
+            ),
         ),
     ),
     SettingsGroup(
@@ -614,6 +626,40 @@ def write_settings(values: dict) -> Path:
     return path
 
 
+# Accepted AI_PROVIDER values. Anything else falls back to Gemini so an unknown
+# value never silently waives the API-key requirement.
+AI_PROVIDER_GEMINI = "gemini"
+AI_PROVIDER_MANUAL = "manual"
+
+# Required keys that only the Gemini route needs. The manual paste route
+# (T-026) works with none of them.
+_GEMINI_ONLY_REQUIRED_KEYS = frozenset({"GEMINI_API_KEY"})
+
+
+def ai_provider_mode(values: dict) -> str:
+    """
+    Return the normalized AI route selected by AI_PROVIDER.
+
+    Args:
+        values: dict[str, str] of settings (from read_settings or the Setup UI).
+
+    Returns:
+        AI_PROVIDER_MANUAL when the value is "manual" (case-insensitive,
+        whitespace-tolerant); AI_PROVIDER_GEMINI for the default, an absent
+        value, or any unrecognized value.
+
+    Side Effects:
+        None.
+
+    FMEA Constraints:
+        R-COST — lets the operator select the zero-API-spend route explicitly.
+    """
+    raw = (values.get("AI_PROVIDER") or "").strip().lower()
+    # Unknown values are treated as Gemini: the stricter route, which keeps the
+    # API-key requirement in force rather than waiving it on a typo.
+    return AI_PROVIDER_MANUAL if raw == AI_PROVIDER_MANUAL else AI_PROVIDER_GEMINI
+
+
 def missing_required(values: dict) -> list:
     """
     Return the required schema keys whose value is empty/missing.
@@ -624,7 +670,8 @@ def missing_required(values: dict) -> list:
 
     Returns:
         list[str]: required keys (schema order) with an empty/whitespace-only
-        or absent value.
+        or absent value. When AI_PROVIDER selects the manual route, the
+        Gemini-only keys are not required.
 
     Side Effects:
         None.
@@ -634,9 +681,13 @@ def missing_required(values: dict) -> list:
         with an incomplete .env sees exactly what's missing instead of a later,
         less legible failure deep in the pipeline.
     """
+    manual_mode = ai_provider_mode(values) == AI_PROVIDER_MANUAL
     missing = []
     for field_ in _all_fields():
         if not field_.required:
+            continue
+        # The manual paste route needs no Gemini credential (T-026 AC5).
+        if manual_mode and field_.key in _GEMINI_ONLY_REQUIRED_KEYS:
             continue
         value = (values.get(field_.key) or "").strip()
         if not value:
