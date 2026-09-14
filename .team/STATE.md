@@ -14,8 +14,8 @@
 
 ## Next Actions
 
-1. Owner: run the T-027 smoke test (`.team/evidence/T-027/smoke-guide.md`) and record `owner-smoke.md`; the primary then marks T-027 `DONE` and closes #11. Also confirm what to do with `Test.pdf`.
-2. Primary: T-005 (checkpoint eBay publication) is next on the safety-kernel path; apply the queued T-004 follow-ups when it touches `src/core/state_store.py`.
+1. Owner smoke test for T-027 is deferred at the owner's discretion until the UI is a rough working product (D-TEAM-012); T-027 stays `READY-FOR-QA` and #11 stays open with no further prompting. `Test.pdf` disposition still unconfirmed.
+2. Primary: T-005 (checkpoint eBay publication) is next on the safety-kernel path and has NOT been started (no T-005 commit exists as of 2026-09-14; the owner paused work after T-027); apply the queued T-004 follow-ups when it touches `src/core/state_store.py`.
 3. Housekeeping pass: create the queued hardening issues (T-004 state-store follow-ups; T-026/T-027 manual-provider follow-ups including the headless `GeminiProvider` construction, Markdown in echoed IDs, off-schema replies, digit-prefixed MISMATCH), reset processed queue entries, and patch the `Pliskin-Industries` links per `working/DOCUMENT_DRIFT_LOG.md`.
 4. Refresh the README Gantt at the next phase gate (T-026/T-027 done or near-done; T-004 closed 2026-09-10).
 
@@ -38,3 +38,4 @@
 - 2026-09-10: standing authorization to commit, fast-forward `main`, push, and close issues until the UI is complete (D-TEAM-010).
 - 2026-09-11: manual replies are released only after an eBay publish or an explicit "Redo AI reply"; drafts keep them so no item asks for a second paste. Widgets are keyed by SKU. The deferred rescan and rerun run at the end of `main()` so operator edits survive.
 - 2026-09-11: T-027 cycle-2 critic concerns C1 and C2 were fixed after the QA PASS and re-verified by the builder driver, unit suites, and the canonical verifier; the owner smoke test is the final gate.
+- 2026-09-14: any hosted database requirement uses Neon, not Supabase (D-TEAM-011). Owner smoke testing waits for a rough working UI (D-TEAM-012). Work paused after T-027 at the owner's request.

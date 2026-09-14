@@ -39,3 +39,11 @@ The owner defers all hands-on testing until a working UI exists. T-027 is the fi
 ## D-TEAM-010 — Standing Commit, Merge, and Push Authorization Until the UI Is Complete
 
 On September 10, 2026 the owner approved commits and merges for all future roadmap work until the UI is complete, authorized pushing to `origin`, and authorized closing issues #9 and #10. This supersedes the per-commit gate in D-TEAM-006 for the duration of the UI track: `tier3-v2-roadmap` stays the working branch, `main` fast-forwards to it after each task closes with QA evidence, and both branches push to `origin`. Production publishing, credentials, and code signing remain excluded. The gate returns to per-task owner authorization when the owner declares the UI complete or withdraws this decision.
+
+## D-TEAM-011 — Neon for Any Hosted Database Requirement
+
+On September 14, 2026 the owner directed that any database requirement for this project beyond the local SQLite state store use Neon (serverless Postgres) rather than Supabase or another hosted backend. No current PLAN task needs a hosted database; the decision binds future proposals (for example shared outcome history or a multi-device review queue). The SQLite `StateStore` remains the local source of truth unless a task explicitly migrates it.
+
+## D-TEAM-012 — Owner Smoke Testing Waits for a Rough Working UI
+
+On September 14, 2026 the owner extended D-TEAM-009: hands-on testing waits until the owner judges the UI to be a rough working product, not until a single UI task reaches `READY-FOR-QA`. T-027 AC5 stays open as "awaiting owner" without further prompting; agent QA and critic review continue for every task.
