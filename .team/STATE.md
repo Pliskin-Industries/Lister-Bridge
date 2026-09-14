@@ -2,10 +2,11 @@
 
 ## Current Status
 
-- Sitrep date: 2026-09-11. Sessions on 2026-09-10/11 closed T-004 and T-026 and brought T-027 to `READY-FOR-QA`.
+- Sitrep date: 2026-09-14. Sessions on 2026-09-10/11 closed T-004 and T-026 and brought T-027 to `READY-FOR-QA`.
 - Completed: T-001 through T-004 and T-026, each with QA PASS and critic clearance; evidence under `.team/evidence/`.
 - Ready for owner QA: T-027 (manual paste review UI). Agent review: cycle 1 QA PASS / critic BLOCK (mid-run rerun dropped widget state); cycle 2 fixed it, QA PASS, critic CONCERNS with no blocker; C1/C2 folded in and re-verified. AC1–AC4 verified; AC5 is the owner's smoke test per `.team/evidence/T-027/smoke-guide.md`. Evidence: `qa.md`, `qa-cycle-2.md`, `critic-cycle-2.md`; handoff `.team/handoffs/T-027.md`.
 - Manual mode is now operator-exposed: the Scan button follows `AI_PROVIDER`, pending cards render, and rejected pastes give plain guidance. The headless entry `orchestrator.main()` still constructs `GeminiProvider` (queued follow-up).
+- Issues (2026-09-14): T-005 #12, T-006 #13, T-007 #14, T-008 #15, T-009 #16 created and assigned; Codex handoff prepared at `.team/handoffs/codex-safety-kernel-handoff.md` (branch `codex/safety-kernel`, Fable reviews and marks DONE).
 - Issues: roadmap [#7](https://github.com/GhengisPliskin/Lister-Bridge/issues/7); T-003 [#8](https://github.com/GhengisPliskin/Lister-Bridge/issues/8) closed; T-004 [#9](https://github.com/GhengisPliskin/Lister-Bridge/issues/9) closed; T-026 [#10](https://github.com/Pliskin-Industries/Lister-Bridge/issues/10) closed; T-027 [#11](https://github.com/Pliskin-Industries/Lister-Bridge/issues/11) open until the owner smoke passes. All assigned to `GhengisPliskin`. GitHub resolves the repository as `Pliskin-Industries/Lister-Bridge`.
 - Repository: `C:\\Claude\\Lister-Bridge`, working branch `tier3-v2-roadmap`; `main` fast-forwards to it after each closed task and both push to `origin` (D-TEAM-010).
 - Untracked `Test.pdf` (about 272 KB, 2026-09-10) sits at the repository root; not part of any task, never opened by agents, excluded from commits by explicit staging. Owner to confirm its disposition.
@@ -15,7 +16,7 @@
 ## Next Actions
 
 1. Owner smoke test for T-027 is deferred at the owner's discretion until the UI is a rough working product (D-TEAM-012); T-027 stays `READY-FOR-QA` and #11 stays open with no further prompting. `Test.pdf` disposition still unconfirmed.
-2. Primary: T-005 (checkpoint eBay publication) is next on the safety-kernel path and has NOT been started (no T-005 commit exists as of 2026-09-14; the owner paused work after T-027); apply the queued T-004 follow-ups when it touches `src/core/state_store.py`.
+2. Primary: T-005 through T-009 execute in Codex (GPT-6 Astra) on `codex/safety-kernel` per the handoff; Fable reviews each READY-FOR-QA task, marks DONE, fast-forwards, and pushes. T-005 applies the queued T-004 follow-ups; T-008 fixes the headless `GeminiProvider` construction.
 3. Housekeeping pass: create the queued hardening issues (T-004 state-store follow-ups; T-026/T-027 manual-provider follow-ups including the headless `GeminiProvider` construction, Markdown in echoed IDs, off-schema replies, digit-prefixed MISMATCH), reset processed queue entries, and patch the `Pliskin-Industries` links per `working/DOCUMENT_DRIFT_LOG.md`.
 4. Refresh the README Gantt at the next phase gate (T-026/T-027 done or near-done; T-004 closed 2026-09-10).
 
@@ -38,4 +39,4 @@
 - 2026-09-10: standing authorization to commit, fast-forward `main`, push, and close issues until the UI is complete (D-TEAM-010).
 - 2026-09-11: manual replies are released only after an eBay publish or an explicit "Redo AI reply"; drafts keep them so no item asks for a second paste. Widgets are keyed by SKU. The deferred rescan and rerun run at the end of `main()` so operator edits survive.
 - 2026-09-11: T-027 cycle-2 critic concerns C1 and C2 were fixed after the QA PASS and re-verified by the builder driver, unit suites, and the canonical verifier; the owner smoke test is the final gate.
-- 2026-09-14: any hosted database requirement uses Neon, not Supabase (D-TEAM-011). Owner smoke testing waits for a rough working UI (D-TEAM-012). Work paused after T-027 at the owner's request.
+- 2026-09-14: any hosted database requirement uses Neon, not Supabase (D-TEAM-011). Owner smoke testing waits for a rough working UI (D-TEAM-012). Work paused after T-027 at the owner's request. Owing to limited Fable capacity, the safety kernel (T-005 to T-009) is delegated to Codex via a manual handoff with Fable review; no separate clone, rollback is the Codex branch (D-TEAM-013).

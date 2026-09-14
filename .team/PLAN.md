@@ -116,7 +116,7 @@ Acceptance criteria:
 - [ ] AC3: Retry reconciles the deterministic SKU through offer lookup before creating or publishing. Verify: every injected-failure retry ends with one listing ID.
 - [ ] AC4: A terminal publication releases its claim and remains idempotent across process restart. Verify: restart fixture calls the publisher twice and records one listing.
 
-Notes: Approved roadmap T-005; external calls are at-least-once with reconciliation.
+Notes: Approved roadmap T-005; external calls are at-least-once with reconciliation. Issue: [#12](https://github.com/GhengisPliskin/Lister-Bridge/issues/12). Codex handoff: `.team/handoffs/codex-safety-kernel-handoff.md`.
 
 #### T-006 — Persist fail-closed review candidates [TODO]
 
@@ -131,7 +131,7 @@ Acceptance criteria:
 - [ ] AC3: Unknown condition, incomplete cost/fee/profit inputs, and final price below floor produce hard blockers. Verify: parameterized blocker test passes.
 - [ ] AC4: Soft overrides require operator, reason, and timestamp and cannot remove a hard blocker. Verify: override validation tests pass.
 
-Notes: Approved roadmap T-006.
+Notes: Approved roadmap T-006. Issue: [#13](https://github.com/GhengisPliskin/Lister-Bridge/issues/13).
 
 #### T-007 — Validate category aspects and publication input [TODO]
 
@@ -146,7 +146,7 @@ Acceptance criteria:
 - [ ] AC3: Invalid title, description, condition, quantity, media, category, policies, or location fails before the first remote write. Verify: fake client records zero writes for each invalid fixture.
 - [ ] AC4: Draft adapters reject missing title, description, price, or image manifest. Verify: adapter validation tests pass.
 
-Notes: Approved roadmap T-007.
+Notes: Approved roadmap T-007. Issue: [#14](https://github.com/GhengisPliskin/Lister-Bridge/issues/14).
 
 #### T-008 — Decouple drafts and harden ingestion [TODO]
 
@@ -161,7 +161,7 @@ Acceptance criteria:
 - [ ] AC3: Network, 429, and 5xx failures retry at most three times with `Retry-After` or jittered backoff; other 4xx failures do not retry. Verify: fake-clock tests assert call counts.
 - [ ] AC4: One failed Drive batch does not discard successful batches, and archive occurs only after every item is terminal. Verify: mixed-batch test asserts payloads, errors, and archive calls.
 
-Notes: Approved roadmap T-008.
+Notes: Approved roadmap T-008. Issue: [#15](https://github.com/GhengisPliskin/Lister-Bridge/issues/15).
 
 #### T-009 — Render a truthful persistent review queue [TODO]
 
@@ -176,7 +176,7 @@ Acceptance criteria:
 - [ ] AC3: Sandbox state is always visible, and every production selection is rejected during this roadmap even when `ALLOW_EBAY_PRODUCTION=true`. Verify: settings tests cover absent, false, and true values with zero production client construction.
 - [ ] AC4: Approval remains disabled until all hard blockers and required confirmations are resolved. Verify: review gate truth-table test passes.
 
-Notes: Approved roadmap T-009.
+Notes: Approved roadmap T-009. Issue: [#16](https://github.com/GhengisPliskin/Lister-Bridge/issues/16).
 
 ### Phase 1b — Manual AI mode (proposed 2026-09-10)
 
